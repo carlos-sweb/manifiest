@@ -1,0 +1,81 @@
+@unocss all;
+h2,h3,h4{
+  @apply pt-5
+}
+h2{
+  @apply text-blue-600
+}
+h3 {
+    @apply font-bold text-blue-700;
+}
+p{
+    text-indent:5px;
+    max-width:800px;
+    text-align: justify;
+    text-justify: inter-word;
+} 
+
+strong{
+  @apply text-blue-900
+}
+
+.toc-item > .toc-item-a{
+  @apply flex-1 w-100 py-3 pl-2 no-underline mt-1 mr-5 rounded-md text-bluegray-900
+}
+.toc-subitem > .toc-item-a{
+  @apply flex-1 w-100 py-3 pl-4 no-underline mt-1 mr-5 rounded-md text-bluegray-900
+}
+
+/* ==========================================
+   TABLA CON BORDES DEFINIDOS EN UNOCSS
+   ========================================== */
+
+/* 1. Contenedor principal con borde exterior */
+table {
+  @apply w-full max-w-200 my-6 border-collapse rounded-lg overflow-hidden border border-slate-300 shadow-md text-sm text-blue-600;
+}
+
+/* 2. Cabecera con borde inferior más marcado */
+table thead {
+  @apply bg-slate-300 border-b-2 border-slate-300 text-xs font-semibold uppercase tracking-wider text-slate-700;
+}
+
+/* 3. Celdas de encabezado con divisores verticales */
+table th {
+  @apply px-4 py-3 text-left font-bold border-r border-slate-300 border-b border-slate-300;
+}
+
+/* Elimina el borde derecho de la última celda del encabezado */
+table th:last-child {
+  @apply border-r-0;
+}
+
+/* 4. Celdas del cuerpo con bordes verticales y horizontales */
+table td {
+  @apply px-4 py-3.5 border-b border-r border-slate-200 whitespace-nowrap;
+}
+
+/* Elimina el borde derecho de la última columna */
+table td:last-child {
+  @apply border-r-0;
+}
+
+/* 5. Interactividad y estilos de fila */
+table tbody tr {
+  @apply transition-colors duration-150;
+}
+
+table tbody tr:nth-child(even) {
+  @apply bg-slate-50/70;
+}
+
+table tbody tr:hover {
+  @apply bg-blue-50/50;
+}
+
+/* Elimina el borde inferior de la última fila */
+table tbody tr:last-child td {
+  @apply border-b-0;
+}
+    
+  

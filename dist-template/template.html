@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="$if(lang)$$lang$$else$es$endif$">
+<head>
+  <meta charset="utf-8">
+  <title>$if(title)$$title$$else$Documento$endif$</title>
+  
+$for(css)$
+  <link rel="stylesheet" href="$css$" />
+  $endfor$
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    header {
+      border-bottom: 2px solid #eee;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>  
+  <header>
+    $if(title)$
+      <h1>$title$</h1>
+    $endif$
+    $if(author)$
+      <p><strong>Autor:</strong> $for(author)$$author$$sep$, $endfor$</p>
+    $endif$
+    $if(date)$
+      <p><em>$date$</em></p>
+    $endif$
+  </header>
+
+  $if(toc)$
+  <nav id="TOC" role="doc-toc">
+    <strong>Contenido</strong>
+    $toc$
+  </nav>
+  $endif$
+
+  <main>
+    $body$
+  </main>
+
+</body>
+</html>

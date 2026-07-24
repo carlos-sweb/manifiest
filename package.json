@@ -1,0 +1,31 @@
+{
+  "name": "manifiest",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "unocss": "bunx unocss www/index.html -c uno.config.ts -o www/styles.css",
+    "dev": "bun run --port=9000 public/index.html"
+  },
+  "devDependencies": {
+    "@pandacss/dev": "^1.11.5",
+    "@types/bun": "latest",
+    "@unocss/cli": "^66.7.5",
+    "@unocss/postcss": "^66.7.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource/poppins": "^5.3.0",
+    "@pandacss/postcss": "^1.11.5",
+    "cssnano": "^8.0.2",
+    "esbuild": "^0.28.1",
+    "mithril": "^2.3.8",
+    "path": "^0.12.7",
+    "postcss": "^8.5.22",
+    "postcss-import": "^16.1.1",
+    "unocss": "^66.7.5"
+  }
+}
