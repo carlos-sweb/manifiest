@@ -1,23 +1,16 @@
----
-title: "Mantenedor de Artículos"
-author: "Carlos"
-date: "2026-07-23"
-toc-title : "Contenido"
-css:
-  - styles.css
----
-
 ## OBJETO ##
 
 Definir las estructuras y el flujo del registro , edición y eliminación de un artículo. Además del flujo de ingreso y egreso de existencias, control de inventario y ajustes de inventarios.
 
 ## PRIMERO: El Modelo ##
 
-## Tabla Productos (`products`)
+Pendiente...
+
+## Tabla "products"
 
 ### Propósito
 
-La tabla **`products`** representa el **catálogo maestro de productos** del sistema. Su objetivo es almacenar el **concepto principal** de un producto, independiente de su marca, fabricante, presentación, formato comercial o cualquier otra característica específica.
+La tabla `products` representa el **catálogo maestro de productos** del sistema. Su objetivo es almacenar el **concepto principal** de un producto, independiente de su marca, fabricante, presentación, formato comercial o cualquier otra característica específica.
 
 Cada registro de esta tabla representa un concepto único dentro del negocio, por lo que el campo **"name"** es único y define la identidad del producto.
 
@@ -155,10 +148,10 @@ Mientras la tabla `items` representa los artículos comercializados, `products` 
 | Campo | Descripción |
 |-------|-------------|
 | id | Identificador único |
-| name | Nombre del artículo |
+| name | Nombre del producto |
 | created_at | Fecha de creación |
 | updated_at | Fecha de la última modificación |
-| active | Estado del artículo |
+| status | Estado del producto |
 
 **Mariadb / Mysql**
 
@@ -166,33 +159,46 @@ Mientras la tabla `items` representa los artículos comercializados, `products` 
 CREATE TABLE `products` (
   `id` CHAR(36) NOT NULL DEFAULT (UUID()),
   `name` VARCHAR(255) NOT NULL,
+  `description` TEXT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `status` ENUM('enabled','disabled','suspended') NOT NULL DEFAULT 'enabled',
   PRIMARY KEY (`id`),
   UNIQUE (`name`)
 );
+```
 
-INSERT INTO `products`(name) VALUES( 'chocolate'),( 'prestobarba');
-
-
+```sql
+INSERT INTO `products`(name) VALUES ('chocolate','El chocolate (del náhuatl, xocoatl) es el alimento que se obtiene mezclando azúcar con dos productos que derivan de la manipulación de las semillas del cacao: la masa del cacao y la manteca de cacao');
 ```
 
 **Drizzle ORM**
 
 ```ts
-import { mysqlTable, char, varchar, timestamp, mysqlEnum, unique } from 'drizzle-orm/mysql-core';
+import { mysqlTable, char, varchar, timestamp, mysqlEnum, unique , text } from 'drizzle-orm/mysql-core';
 import { sql } from 'drizzle-orm';
 
 export const products = mysqlTable('products', {
   id: char('id', { length: 36 }).primaryKey().default(sql`(UUID())`),
-  name: varchar('name', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull().unique(),  
+  description: text('description').default(null),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').default(null).onUpdateNow(),
   status: mysqlEnum('status', ['enabled', 'disabled', 'suspended']).notNull().default('enabled'),
 });
 
 ```
+
+## Tabla “manufacturers“
+
+La tabla **manufacturers** contiene el listado de fabricantes, productores, extractores o ensambladores del bien físico que se comercializa. Es la entidad jurídica o persona natural responsable de la transformación, producción o cultivo del artículo, otorgándole una identidad visible al consumidor, generalmente a través de una marca comercial (gestionada en la tabla brands).
+
+### Filosofía de diseño
+
+Mientras que la marca es el "rostro" que ve el cliente final (ej: Marco Polo, Truper, Merck), el fabricante es la entidad que realmente opera la línea de producción, la planta de procesamiento o el campo de cultivo (ej: ICB S.A., Truper S.A. de C.V., Merck Serono S.A.).
+
+>  **Nota sobre frecuencia de uso**: Es cierto que esta tabla tendrá un movimiento bajo. Los fabricantes no cambian a diario; suelen ser datos maestros estáticos. Sin embargo, su existencia es vital para la integridad del catálogo y para generar reportes gerenciales (ej: "¿Qué laboratorio nos vende más?" o "¿Qué fabricante tiene mejor rotación?").El proveedor del software podrá ofrecer datos precargados por región o país, facilitando la adopción del sistema. Por ejemplo, para Chile se podrían incluir fabricantes típicos como ICB S.A., Laboratorios Chile S.A., Coca-Cola Andina S.A., Truper S.A., entre otros.
+
 ## Tabla “brands”: 
 
 Esta tabla contendrá un listado de marcas y/o fabricantes de productos, esta tabla servirá de referencia para establecer los artículos en la tabla “items”.

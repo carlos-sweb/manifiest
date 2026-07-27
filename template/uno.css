@@ -1,81 +1,127 @@
 @unocss all;
-h2,h3,h4{
-  @apply pt-5
+/* Layout general para el contenedor global */
+body {
+  @apply flex min-h-screen bg-gray-100 text-gray-800 m-0 p-0;
 }
-h2{
-  @apply text-blue-600
+body {
+    font-family: 'Fira Mono', monospace;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
 }
-h3 {
-    @apply font-bold text-blue-700;
-}
-p{
-    text-indent:5px;
-    max-width:800px;
-    text-align: justify;
-    text-justify: inter-word;
-} 
-
-strong{
-  @apply text-blue-900
+code{
+  font-family: "JetBrains Mono", monospace;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
 }
 
-.toc-item > .toc-item-a{
-  @apply flex-1 w-100 py-3 pl-2 no-underline mt-1 mr-5 rounded-md text-bluegray-900
-}
-.toc-subitem > .toc-item-a{
-  @apply flex-1 w-100 py-3 pl-4 no-underline mt-1 mr-5 rounded-md text-bluegray-900
+/* Contenedor principal del encabezado */
+.article-header {
+  @apply mb-8;
 }
 
-/* ==========================================
-   TABLA CON BORDES DEFINIDOS EN UNOCSS
-   ========================================== */
-
-/* 1. Contenedor principal con borde exterior */
-table {
-  @apply w-full max-w-200 my-6 border-collapse rounded-lg overflow-hidden border border-slate-300 shadow-md text-sm text-blue-600;
+.article-header h1 {
+  @apply text-3xl font-bold leading-tight text-gray-900 mb-3;
 }
 
-/* 2. Cabecera con borde inferior más marcado */
-table thead {
-  @apply bg-slate-300 border-b-2 border-slate-300 text-xs font-semibold uppercase tracking-wider text-slate-700;
+/* Contenedor de autor y fecha */
+.article-meta {
+  @apply flex items-center flex-wrap gap-2 text-sm text-gray-500 font-sans;
 }
 
-/* 3. Celdas de encabezado con divisores verticales */
-table th {
-  @apply px-4 py-3 text-left font-bold border-r border-slate-300 border-b border-slate-300;
+/* Elementos dentro de los metadatos */
+.meta-item {
+  @apply inline-flex items-center;
 }
 
-/* Elimina el borde derecho de la última celda del encabezado */
-table th:last-child {
-  @apply border-r-0;
+/* Enlace del autor */
+.meta-item.author a {
+  @apply text-blue-600 font-medium ml-1 transition-colors duration-150 hover:text-blue-700 hover:underline;
 }
 
-/* 4. Celdas del cuerpo con bordes verticales y horizontales */
-table td {
-  @apply px-4 py-3.5 border-b border-r border-slate-200 whitespace-nowrap;
+/* Punto separador */
+.meta-divider {
+  @apply text-gray-400 text-xs select-none;
 }
 
-/* Elimina el borde derecho de la última columna */
-table td:last-child {
-  @apply border-r-0;
+/* Texto de la fecha */
+.meta-item.date {
+  @apply text-gray-600;
 }
 
-/* 5. Interactividad y estilos de fila */
-table tbody tr {
-  @apply transition-colors duration-150;
+/* Sidebar / Menu de navegación */
+#nav-menu {
+  @apply fixed top-0 left-0 w-64 h-screen bg-white border-r border-gray-200 overflow-y-auto p-4 flex flex-col gap-2 z-10 shadow-sm;
 }
 
-table tbody tr:nth-child(even) {
-  @apply bg-slate-50/70;
+#nav-menu .container-item {
+  @apply block;
 }
 
-table tbody tr:hover {
-  @apply bg-blue-50/50;
+#nav-menu .container-item a {
+  @apply block px-3 py-2 text-sm font-medium text-gray-600 rounded-md transition-colors duration-150 hover:bg-gray-100 hover:text-blue-600 no-underline truncate;
 }
 
-/* Elimina el borde inferior de la última fila */
-table tbody tr:last-child td {
-  @apply border-b-0;
+#nav-menu .container-item .active {
+  @apply bg-gray-100 text-blue-600;
 }
-    
-  
+
+/* Área principal de contenido */
+#main-content {
+  @apply ml-64 flex-1 pl-12 pt-8 pb-8 pr-8 max-w-4xl min-h-screen overflow-y-auto;
+}
+
+/* Estilos tipográficos rápidos para el contenido interno de main */
+#main-content h1 {
+  @apply text-3xl font-bold text-gray-900 mb-6 border-b pb-2;
+}
+
+#main-content h2 {
+  @apply text-xl font-semibold text-gray-800 mt-8 mb-4 border-b border-gray-200 pb-1 pt-3;
+}
+
+#main-content h3 {
+  @apply text-lg font-medium text-gray-700 mt-6 mb-2;
+}
+
+#main-content p {
+  @apply leading-relaxed text-gray-600 mb-4;
+}
+
+#main-content code {
+  @apply  px-1 py-0.5 rounded text-sm;
+}
+
+#main-content pre {
+  @apply bg-gray-900 text-gray-300 p-4 rounded-lg overflow-x-auto my-4 text-sm;
+}
+
+#main-content pre code {
+  @apply bg-transparent text-inherit p-0;
+}
+
+
+#main-content table {
+  @apply w-full border-collapse my-4 text-left text-sm;
+}
+
+#main-content th, 
+#main-content td {
+  @apply border border-gray-300 p-2;
+}
+
+#main-content th {
+  @apply bg-gray-100 font-semibold text-gray-700;
+}
+
+.hljs-string{
+  @apply text-wrap
+}
+
+blockquote{
+  @apply p-4 my-4 bg-gray-200 rounded-md border-l-5 border-l-solid border-blue-600
+}
+blockquote p{
+  @apply italic font-small text-gray-900
+}
