@@ -208,6 +208,25 @@ Por esta razón, un producto <strong>no debe cambiar de identidad</strong>.</p>
 <blockquote>
 <p><strong>Nota sobre frecuencia de uso</strong>: Es cierto que esta tabla tendrá un movimiento bajo. Los fabricantes no cambian a diario; suelen ser datos maestros estáticos. Sin embargo, su existencia es vital para la integridad del catálogo y para generar reportes gerenciales (ej: &quot;¿Qué laboratorio nos vende más?&quot; o &quot;¿Qué fabricante tiene mejor rotación?&quot;).El proveedor del software podrá ofrecer datos precargados por región o país, facilitando la adopción del sistema. Por ejemplo, para Chile se podrían incluir fabricantes típicos como ICB S.A., Laboratorios Chile S.A., Coca-Cola Andina S.A., Truper S.A., entre otros.</p>
 </blockquote>
+<p><strong>Mariadb / Mysql</strong></p>
+<pre><code class="language-sql"><span class="hljs-keyword">CREATE TABLE</span> `manufacturers` (
+  `id` <span class="hljs-type">CHAR</span>(<span class="hljs-number">36</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> (UUID()),
+  `name` <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span>,
+  `created_at` <span class="hljs-type">TIMESTAMP</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> ,
+  `updated_at` <span class="hljs-type">TIMESTAMP</span> <span class="hljs-keyword">NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span> ,
+  `active` ENUM(<span class="hljs-string">&#x27;enabled&#x27;</span>,<span class="hljs-string">&#x27;disabled&#x27;</span>,<span class="hljs-string">&#x27;suspended&#x27;</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">&#x27;enabled&#x27;</span> ,
+  <span class="hljs-keyword">PRIMARY KEY</span> (`id`),  
+  <span class="hljs-keyword">UNIQUE</span> (`name`));
+</code></pre>
+<p><strong>SQLite</strong></p>
+<pre><code class="language-sql"><span class="hljs-keyword">CREATE TABLE</span> `manufacturers` (
+  `id` TEXT <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">PRIMARY KEY</span> <span class="hljs-keyword">DEFAULT</span> (<span class="hljs-built_in">lower</span>(hex(randomblob(<span class="hljs-number">4</span>))) <span class="hljs-operator">||</span> <span class="hljs-string">&#x27;-&#x27;</span> <span class="hljs-operator">||</span> <span class="hljs-built_in">lower</span>(hex(randomblob(<span class="hljs-number">2</span>))) <span class="hljs-operator">||</span> <span class="hljs-string">&#x27;-4&#x27;</span> <span class="hljs-operator">||</span> substr(<span class="hljs-built_in">lower</span>(hex(randomblob(<span class="hljs-number">2</span>))), <span class="hljs-number">2</span>) <span class="hljs-operator">||</span> <span class="hljs-string">&#x27;-&#x27;</span> <span class="hljs-operator">||</span> substr(<span class="hljs-string">&#x27;89ab&#x27;</span>, <span class="hljs-number">1</span> <span class="hljs-operator">+</span> (<span class="hljs-built_in">abs</span>(random()) <span class="hljs-operator">%</span> <span class="hljs-number">4</span>), <span class="hljs-number">1</span>) <span class="hljs-operator">||</span> substr(<span class="hljs-built_in">lower</span>(hex(randomblob(<span class="hljs-number">2</span>))), <span class="hljs-number">2</span>) <span class="hljs-operator">||</span> <span class="hljs-string">&#x27;-&#x27;</span> <span class="hljs-operator">||</span> <span class="hljs-built_in">lower</span>(hex(randomblob(<span class="hljs-number">6</span>)))),
+  `name` TEXT <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">UNIQUE</span>,
+  `created_at` TEXT <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> (strftime(<span class="hljs-string">&#x27;%Y-%m-%d %H:%M:%S&#x27;</span>, <span class="hljs-string">&#x27;now&#x27;</span>)),
+  `updated_at` TEXT <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">NULL</span>,
+  `active` TEXT <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-string">&#x27;enabled&#x27;</span> <span class="hljs-keyword">CHECK</span> (<span class="hljs-operator">&amp;</span>quot;active<span class="hljs-operator">&amp;</span>quot; <span class="hljs-keyword">IN</span> (<span class="hljs-string">&#x27;enabled&#x27;</span>, <span class="hljs-string">&#x27;disabled&#x27;</span>, <span class="hljs-string">&#x27;suspended&#x27;</span>))
+);
+</code></pre>
 <h2 id="tabla-brands">Tabla “brands”:</h2>
 <p>Esta tabla contendrá un listado de marcas y/o fabricantes de productos, esta tabla servirá de referencia para establecer los artículos en la tabla “items”.</p>
 <p>Campos ( Fields )
@@ -226,7 +245,7 @@ active
 Estado de la marca</p>
 <p><strong>Mariadb / Mysql</strong></p>
 <pre><code class="language-sql"><span class="hljs-keyword">CREATE TABLE</span> `brands` (
-  `id` <span class="hljs-type">INT</span>(<span class="hljs-number">11</span>) <span class="hljs-keyword">NOT NULL</span> AUTO_INCREMENT ,
+  `id` <span class="hljs-type">CHAR</span>(<span class="hljs-number">36</span>) <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> (UUID()),
   `name` <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">255</span>) <span class="hljs-keyword">NOT NULL</span> ,
   `user_id` <span class="hljs-type">INT</span>(<span class="hljs-number">11</span>) <span class="hljs-keyword">NOT NULL</span> ,
   `created_at` <span class="hljs-type">TIMESTAMP</span> <span class="hljs-keyword">NOT NULL</span> <span class="hljs-keyword">DEFAULT</span> <span class="hljs-built_in">CURRENT_TIMESTAMP</span> ,

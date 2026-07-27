@@ -199,6 +199,29 @@ Mientras que la marca es el "rostro" que ve el cliente final (ej: Marco Polo, Tr
 
 >  **Nota sobre frecuencia de uso**: Es cierto que esta tabla tendrá un movimiento bajo. Los fabricantes no cambian a diario; suelen ser datos maestros estáticos. Sin embargo, su existencia es vital para la integridad del catálogo y para generar reportes gerenciales (ej: "¿Qué laboratorio nos vende más?" o "¿Qué fabricante tiene mejor rotación?").El proveedor del software podrá ofrecer datos precargados por región o país, facilitando la adopción del sistema. Por ejemplo, para Chile se podrían incluir fabricantes típicos como ICB S.A., Laboratorios Chile S.A., Coca-Cola Andina S.A., Truper S.A., entre otros.
 
+**Mariadb / Mysql**
+
+```sql
+CREATE TABLE `manufacturers` (
+  `id` CHAR(36) NOT NULL DEFAULT (UUID()),
+  `name` VARCHAR(255) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ,
+  `active` ENUM('enabled','disabled','suspended') NOT NULL DEFAULT 'enabled' ,
+  PRIMARY KEY (`id`),  
+  UNIQUE (`name`));
+```
+**SQLite**
+
+```sql
+CREATE TABLE `manufacturers` (
+  `id` TEXT NOT NULL PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', 1 + (abs(random()) % 4), 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))),
+  `name` TEXT NOT NULL UNIQUE,
+  `created_at` TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
+  `updated_at` TEXT DEFAULT NULL,
+  `active` TEXT NOT NULL DEFAULT 'enabled' CHECK ("active" IN ('enabled', 'disabled', 'suspended'))
+);
+```
 ## Tabla “brands”: 
 
 Esta tabla contendrá un listado de marcas y/o fabricantes de productos, esta tabla servirá de referencia para establecer los artículos en la tabla “items”.
@@ -222,7 +245,7 @@ Estado de la marca
 
 ```sql
 CREATE TABLE `brands` (
-  `id` INT(11) NOT NULL AUTO_INCREMENT ,
+  `id` CHAR(36) NOT NULL DEFAULT (UUID()),
   `name` VARCHAR(255) NOT NULL ,
   `user_id` INT(11) NOT NULL ,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
