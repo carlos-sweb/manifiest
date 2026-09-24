@@ -26,48 +26,23 @@ Estas promesas no son un lujo técnico. Son la condición para que el negocio pu
 
 ## PRIMERO: El Modelo
 
-```dot
-digraph ITEMS {
-    // Estilo limpio: cajas redondeadas (entidades) + etiquetas de relación en
-    // las aristas. El grupo de usuarios va a la izquierda y el resto se ordena
-    // automáticamente (mismo motor de layout que mermaid: Graphviz/dagre).
-    layout=dot;
-    graph [rankdir=LR, ranksep=1.2, nodesep=0.7];
-    node  [shape=box, style="rounded,filled", fillcolor="#f5f5f5",
-           color="#444", fontname="Arial", fontsize=13, margin="0.2,0.1"];
-    edge  [fontname="Arial", fontsize=11, color="#666", arrowsize=0.7];
-
-    // Entidades
-    PRODUCTS [label="PRODUCTS"];
-    ITEMS    [label="ITEMS"];
-    BRANDS   [label="BRANDS"];
-    CATEGORIES [label="CATEGORIES"];
-    STOCK    [label="STOCK"];
-    STORES   [label="STORES"];
-    INVOICE_REFERENCE [label="INVOICE_REFERENCE"];
-    SUPPLIERS [label="SUPPLIERS"];
-    INVOICE_SUPPLIERS [label="INVOICE_SUPPLIERS"];
-    INVOICE_CUSTOMER  [label="INVOICE_CUSTOMER"];
-    CUSTOMERS [label="CUSTOMERS"];
-    USERS     [label="USERS"];
-
-    // Relaciones
-    PRODUCTS -> ITEMS [label="define concepto"];
-    BRANDS -> ITEMS [label="identifica"];
-    CATEGORIES -> ITEMS [label="clasifica"];
-    ITEMS -> STOCK [label="registra movimiento"];
-    STORES -> STOCK [label="almacena"];
-    INVOICE_REFERENCE -> STOCK [label="documenta"];
-    SUPPLIERS -> INVOICE_SUPPLIERS [label="provee"];
-    CUSTOMERS -> INVOICE_CUSTOMER [label="compra"];
-    INVOICE_SUPPLIERS -> INVOICE_REFERENCE [label="origina"];
-    INVOICE_CUSTOMER -> INVOICE_REFERENCE [label="origina"];
-    USERS -> ITEMS [label="gestiona"];
-    USERS -> STORES [label="gestiona"];
-    USERS -> STOCK [label="registra"];
-    USERS -> BRANDS [label="gestiona"];
-    USERS -> CATEGORIES [label="gestiona"];
-}
+```mermaid
+graph LR
+  PRODUCTS["PRODUCTS"] -->|"define concepto"| ITEMS["ITEMS"]
+  BRANDS["BRANDS"]    -->|"identifica"| ITEMS
+  CATEGORIES["CATEGORIES"] -->|"clasifica"| ITEMS
+  ITEMS -->|"registra movimiento"| STOCK["STOCK"]
+  STORES["STORES"] -->|"almacena"| STOCK
+  INVOICE_REFERENCE["INVOICE_REFERENCE"] -->|"documenta"| STOCK
+  SUPPLIERS["SUPPLIERS"] -->|"provee"| INVOICE_SUPPLIERS["INVOICE_SUPPLIERS"]
+  CUSTOMERS["CUSTOMERS"] -->|"compra"| INVOICE_CUSTOMER["INVOICE_CUSTOMER"]
+  INVOICE_SUPPLIERS -->|"origina"| INVOICE_REFERENCE
+  INVOICE_CUSTOMER -->|"origina"| INVOICE_REFERENCE
+  USERS["USERS"] -->|"gestiona"| ITEMS
+  USERS -->|"gestiona"| STORES
+  USERS -->|"registra"| STOCK
+  USERS -->|"gestiona"| BRANDS
+  USERS -->|"gestiona"| CATEGORIES
 ```
 
 ## Tabla "products"
@@ -102,7 +77,7 @@ En una farmacia, el producto representa el **principio activo**.
 
   1. Ibuprofin 400 mg
   1. Ibuprofin 600 mg
-  1. Kitadol 400 mg
+  1. Actron 400 mg
 
 
 Todos los artículos anteriores pertenecen al mismo producto: **Ibuprofeno**.

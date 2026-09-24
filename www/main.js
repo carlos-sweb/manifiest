@@ -1,5 +1,6 @@
 import m from "mithril"
 import data from "./router.json" with { type: "json" }
+import mermaid from "mermaid"
 import { css } from "../styled-system/css"
 import { Menu, MenuItem, MenuTitle } from "panda-ui-mithril/menu"
 import {
@@ -22,6 +23,8 @@ import { Link } from "panda-ui-mithril/link"
 import { ThemeController } from "panda-ui-mithril/theme-controller"
 
 m.route.prefix = "#"
+
+mermaid.initialize({ startOnLoad: false })
 
 const firstSlug = data.sections[0]?.link ?? ""
 
@@ -128,6 +131,9 @@ const Header = {
 
 function Section() {
   return {
+    onupdate: () => {
+      mermaid.run({ querySelector: '#main-content .language-mermaid' })
+    },
     view: ({ attrs }) => {
       const section =
         data.sections.find((s) => s.link === attrs.slug) ?? data.sections[0]

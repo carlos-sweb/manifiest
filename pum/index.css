@@ -3,12 +3,14 @@
    tokens, recipes, utilities) al correr postcss sobre este archivo. */
 @layer reset, base, tokens, recipes, utilities;
 @import "../node_modules/highlight.js/styles/arduino-light.min.css";
-/* Diagramas mermaid pre-renderizados en build (SSR): el SVG viaja dentro del
-   HTML de la sección en router.json. */
+/* Diagramas Mermaid renderizados en cliente por mermaid.run().
+   Mermaid reemplaza <pre><code class="language-mermaid"> por un <pre class="mermaid"> con SVG. */
+pre.mermaid,
 .mermaid-diagram {
   overflow-x: auto;
   margin-block: 1.5rem;
 }
+pre.mermaid svg,
 .mermaid-diagram svg {
   display: block;
   max-width: 100%;
