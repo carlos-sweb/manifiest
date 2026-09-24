@@ -90,6 +90,7 @@ preflight: true,
         overflowX: 'auto',
         my: '4',
         fontSize: 'sm',
+        boxShadow: 'sm'
       },
       '& pre code': {
         bg: 'transparent',

@@ -118,7 +118,7 @@ const Header = {
       m("div", { className: metaClass }, [
         m(Text, { as: "span", size: "sm", color: "neutral" }, [
           "Por ",
-          m(Link, { href: `#/${firstSlug}`, color: "primary" }, data.author),
+          m(Link, { href: data.author_link || `#/${firstSlug}`, color: "primary" }, data.author),
         ]),
         m(Text, { as: "span", size: "sm", color: "neutral" }, "•"),
         m(Text, { as: "span", size: "sm", color: "neutral" }, data.date),

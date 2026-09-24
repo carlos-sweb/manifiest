@@ -53,7 +53,8 @@ if (current) sections.push(current);
 
 const routerData = {
   title: mdConfig?.title ?? '',
-  author: mdConfig?.author ?? '',
+  author: mdConfig?.author?.name ?? '',
+  author_link: mdConfig?.author?.link ?? '',
   date: mdConfig?.date ?? '',
   sections,
 };
