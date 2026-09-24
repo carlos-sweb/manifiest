@@ -1,0 +1,22 @@
+{
+  "ibm-plex-sans": {
+    "family": "IBM Plex Sans",
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "styles": [
+      "italic",
+      "normal"
+    ],
+    "subsets": [
+      "latin"
+    ],
+    "variable": false
+  }
+}

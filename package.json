@@ -4,31 +4,44 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "unocss": "bunx unocss www/index.html -c uno.config.ts -o www/styles.css",
-    "dev": "bun run --port=9000 public/index.html"
+    "codegen": "bunx panda codegen",
+    "css": "bun run scripts/build-css.ts -i=pum/index.css -o=www/styles.css",
+    "build": "bun run codegen && bun run css && bun run build/build.ts",
+    "static": "bun run build && bun run build/static.ts",
+    "dev": "bun run build && bun --port=9000 www/index.html"
   },
   "devDependencies": {
-    "@pandacss/dev": "^1.11.5",
+    "@pandacss/dev": "^1.12.1",
+    "@pandacss/preset-panda": "^1.12.1",
     "@types/bun": "latest",
-    "@unocss/cli": "^66.7.5",
-    "@unocss/postcss": "^66.7.5"
+    "@types/jsdom": "^30.0.0",
+    "jsdom": "^30.1.1",
+    "playwright-core": "^1.63.0"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "@fontsource/poppins": "^5.3.0",
-    "@pandacss/postcss": "^1.11.5",
-    "@unocss/reset": "^66.7.5",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@pandacss/postcss": "^1.12.1",
+    "@types/mithril": "^2.2.9",
+    "autoprefixer": "^10.5.6",
     "cheerio": "^1.2.0",
-    "cssnano": "^8.0.2",
-    "esbuild": "^0.28.1",
-    "highlight.js": "^11.11.1",
+    "cssnano": "^9.0.4",
+    "esbuild": "^0.28.2",
+    "highlight.js": "^11.12.0",
+    "lightningcss": "^1.33.0",
     "lodash": "^4.18.1",
+    "mermaid": "^12.0.0",
+    "mithril": "^2.3.8",
+    "panda-ui-mithril": "https://github.com/carlos-sweb/panda-ui-mithril.git",
     "path": "^0.12.7",
-    "postcss": "^8.5.22",
-    "postcss-import": "^16.1.1",
-    "unocss": "^66.7.5"
+    "postcss": "^8.5.28",
+    "postcss-import": "^16.2.0",
+    "postcss-nesting": "^14.0.1",
+    "postcss-prune-var": "^1.1.2",
+    "postcss-reporter": "^7.1.0",
+    "postcss-url": "^10.1.4",
+    "stylelint": "^17.15.0"
   }
 }

@@ -1,0 +1,3 @@
+jsx = "react"
+jsxFactory = "m"
+jsxFragmentFactory = "m.Fragment"

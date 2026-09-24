@@ -1,10 +1,74 @@
-## OBJETO ##
 
-Definir las estructuras y el flujo del registro , edición y eliminación de un artículo. Además del flujo de ingreso y egreso de existencias, control de inventario y ajustes de inventarios.
+## OBJETO
 
-## PRIMERO: El Modelo ##
+### Establecer un contrato
 
-Pendiente...
+No un contrato legal ni comercial, sino un pacto silencioso entre el negocio y su memoria. Un acuerdo que establece qué se recuerda, qué se olvida, qué se puede corregir y qué debe permanecer intocable. Cuando ese contrato se rompe, el sistema deja de ser confiable: los números no cuadran, los reportes mienten, el inventario se vuelve una ficción y las decisiones se toman a ciegas.
+
+Este documento define las estructuras y los flujos que sostienen ese contrato para el registro, edición y eliminación de artículos, así como para el ingreso y egreso de existencias, el control de inventario y sus ajustes.
+
+El contrato se apoya en cuatro promesas fundamentales:
+
+1. **Nada se pierde.**  
+   La historia del negocio no se borra. Un artículo que deja de venderse no desaparece: cambia de estado. Una venta pasada no se reescribe: se conserva. Un nombre mal escrito no se sobrescribe sin dejar rastro: se corrige con registro.
+
+2. **Nada se falsifica.**  
+   Cada movimiento de inventario queda atado a un documento, a un usuario y a una fecha. El stock no es una opinión: es la suma de hechos registrados.
+
+3. **Nada se duplica.**  
+   Un concepto es un concepto. Una marca es una marca. Si algo ya existe —aunque esté deshabilitado—, el sistema lo reconoce y lo reutiliza en lugar de crear un gemelo que ensucie el catálogo.
+
+4. **Nada se destruye.**  
+   La eliminación física es una tentación peligrosa. Este modelo la reemplaza por estados (`enabled`, `disabled`, `suspended`) que permiten retirar sin romper, ocultar sin olvidar, suspender sin condenar.
+
+Estas promesas no son un lujo técnico. Son la condición para que el negocio pueda confiar en su propio reflejo digital.
+
+
+## PRIMERO: El Modelo
+
+```dot
+digraph ITEMS {
+    // Estilo limpio: cajas redondeadas (entidades) + etiquetas de relación en
+    // las aristas. El grupo de usuarios va a la izquierda y el resto se ordena
+    // automáticamente (mismo motor de layout que mermaid: Graphviz/dagre).
+    layout=dot;
+    graph [rankdir=LR, ranksep=1.2, nodesep=0.7];
+    node  [shape=box, style="rounded,filled", fillcolor="#f5f5f5",
+           color="#444", fontname="Arial", fontsize=13, margin="0.2,0.1"];
+    edge  [fontname="Arial", fontsize=11, color="#666", arrowsize=0.7];
+
+    // Entidades
+    PRODUCTS [label="PRODUCTS"];
+    ITEMS    [label="ITEMS"];
+    BRANDS   [label="BRANDS"];
+    CATEGORIES [label="CATEGORIES"];
+    STOCK    [label="STOCK"];
+    STORES   [label="STORES"];
+    INVOICE_REFERENCE [label="INVOICE_REFERENCE"];
+    SUPPLIERS [label="SUPPLIERS"];
+    INVOICE_SUPPLIERS [label="INVOICE_SUPPLIERS"];
+    INVOICE_CUSTOMER  [label="INVOICE_CUSTOMER"];
+    CUSTOMERS [label="CUSTOMERS"];
+    USERS     [label="USERS"];
+
+    // Relaciones
+    PRODUCTS -> ITEMS [label="define concepto"];
+    BRANDS -> ITEMS [label="identifica"];
+    CATEGORIES -> ITEMS [label="clasifica"];
+    ITEMS -> STOCK [label="registra movimiento"];
+    STORES -> STOCK [label="almacena"];
+    INVOICE_REFERENCE -> STOCK [label="documenta"];
+    SUPPLIERS -> INVOICE_SUPPLIERS [label="provee"];
+    CUSTOMERS -> INVOICE_CUSTOMER [label="compra"];
+    INVOICE_SUPPLIERS -> INVOICE_REFERENCE [label="origina"];
+    INVOICE_CUSTOMER -> INVOICE_REFERENCE [label="origina"];
+    USERS -> ITEMS [label="gestiona"];
+    USERS -> STORES [label="gestiona"];
+    USERS -> STOCK [label="registra"];
+    USERS -> BRANDS [label="gestiona"];
+    USERS -> CATEGORIES [label="gestiona"];
+}
+```
 
 ## Tabla "products"
 
@@ -24,7 +88,7 @@ La tabla `products` no representa un artículo comercial, sino el **concepto bas
 Esta separación permite reutilizar un mismo producto para múltiples artículos comerciales, evitando duplicidad de información y facilitando la generación de reportes, estadísticas y procesos de inventario.
 
 
-#### Ejemplos
+Ejemplos :
 
 #### Farmacia
 
@@ -257,7 +321,9 @@ CREATE TABLE `brands` (
 ```
 
 ```sql
-INSERT INTO `brands`(name,user_id) VALUES( 'Merck Serona' , 1  )  , ( 'Laboratorios Chile' , 1 );
+INSERT INTO `brands`(name,user_id) VALUES 
+    ( 'Merck Serona' , 1  )  , 
+    ( 'Laboratorios Chile' , 1 );
 ```
 
 ## Tabla “categories”: 

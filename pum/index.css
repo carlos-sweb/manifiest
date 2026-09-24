@@ -1,0 +1,16 @@
+/* Entry CSS del pipeline postcss — gestionado por panda-ui-mithril config.
+   La directiva @layer activa la generación del CSS de Panda (reset, base,
+   tokens, recipes, utilities) al correr postcss sobre este archivo. */
+@layer reset, base, tokens, recipes, utilities;
+@import "../node_modules/highlight.js/styles/arduino-light.min.css";
+/* Diagramas mermaid pre-renderizados en build (SSR): el SVG viaja dentro del
+   HTML de la sección en router.json. */
+.mermaid-diagram {
+  overflow-x: auto;
+  margin-block: 1.5rem;
+}
+.mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
