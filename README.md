@@ -1,16 +1,22 @@
-# manifiest
+# Manifiest
 
-To install dependencies:
+Documentación del modelo de datos para el mantenedor de artículos, control de inventario y gestión de existencias.
 
-```bash
+## Sitio
+
+**🌐 [carlos-sweb.github.io/manifiest](https://carlos-sweb.github.io/manifiest/)**
+
+El sitio se despliega automáticamente a GitHub Pages desde el branch `main` mediante GitHub Actions.
+
+## Desarrollo
+
+```sh
 bun install
+bun run dev     # build + servidor en http://localhost:9000
 ```
 
-To run:
+## Build estático
 
-```bash
-bun run index.ts
+```sh
+bun run static  # genera www-static/ listo para servir con cualquier servidor HTTP
 ```
-
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
-# manifiest
