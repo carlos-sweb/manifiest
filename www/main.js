@@ -130,10 +130,12 @@ const Header = {
 }
 
 function Section() {
+  const runMermaid = () => {
+    mermaid.run({ querySelector: '#main-content .language-mermaid' })
+  }
   return {
-    onupdate: () => {
-      mermaid.run({ querySelector: '#main-content .language-mermaid' })
-    },
+    oncreate: runMermaid,
+    onupdate: runMermaid,
     view: ({ attrs }) => {
       const section =
         data.sections.find((s) => s.link === attrs.slug) ?? data.sections[0]
