@@ -2,9 +2,6 @@ import { build } from 'esbuild';
 import { cpSync, rmSync, mkdirSync, existsSync, statSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 
-// Misma fuente de verdad que build.ts — los assets CSS se definen en el YAML
-import mdConfig from "./../src/md/items.yaml" with { type: "yaml" };
-
 const ROOT = resolve(import.meta.dir, '..');
 const SRC  = resolve(ROOT, 'www');
 const DEST = resolve(ROOT, 'www-static');
@@ -19,9 +16,10 @@ if (existsSync(DEST)) {
 
 mkdirSync(DEST, { recursive: true });
 
-/* ── Paso 1: leer router.json para inlinearlo en el bundle ──────── */
+/* ── Paso 1: leer router.json ────────────────────────────────────── */
 const routerJsonPath = resolve(SRC, 'router.json');
 const routerData = await Bun.file(routerJsonPath).text();
+const routerJson = JSON.parse(routerData);
 
 /* ── Paso 2: bundle de main.js con router.json inlineado ─────────── */
 const outfile = resolve(DEST, 'main.js');
@@ -54,9 +52,7 @@ await build({
     {
       // panda-ui-mithril usa imports relativos como
       //   import { css } from '../../../styled-system/css'
-      // que desde node_modules/ no resuelven. Este plugin captura
-      // cualquier path que contenga "styled-system/" y lo redirige
-      // al directorio raíz del proyecto.
+      // que desde node_modules/ no resuelven.
       name: 'styled-system',
       setup(b) {
         b.onResolve({ filter: /styled-system\// }, (args) => {
@@ -76,21 +72,27 @@ await build({
 
 console.log(`📦  Bundle → ${outfile}`);
 
-/* ── Paso 3: copiar assets CSS desde el YAML (misma fuente que build.ts) ─ */
-const cssLinks: string[] = mdConfig?.links ?? [];
-
-if (!Array.isArray(cssLinks) || cssLinks.length === 0) {
-  console.warn('⚠️  No se encontraron assets en src/md/items.yaml → links');
+/* ── Paso 3: copiar assets CSS desde router.json ─────────────────── */
+const allLinks = new Set<string>();
+const mantenedores = routerJson.mantenedores ?? [];
+for (const mnt of mantenedores) {
+  if (Array.isArray(mnt.links)) {
+    for (const link of mnt.links) allLinks.add(link);
+  }
 }
 
-for (const file of cssLinks) {
+if (allLinks.size === 0) {
+  console.warn('⚠️  No se encontraron assets CSS en router.json');
+}
+
+for (const file of allLinks) {
   const srcPath = resolve(SRC, file);
   if (existsSync(srcPath)) {
     const destPath = resolve(DEST, file);
     cpSync(srcPath, destPath);
     console.log(`📄  Copiado  ${file}`);
   } else {
-    console.warn(`⚠️  Asset declarado en YAML pero no encontrado: ${file}`);
+    console.warn(`⚠️  Asset "${file}" no encontrado en www/`);
   }
 }
 

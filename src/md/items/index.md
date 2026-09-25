@@ -37,12 +37,7 @@ erDiagram
   SUPPLIERS ||--o{ INVOICE_SUPPLIERS : provee
   CUSTOMERS ||--o{ INVOICE_CUSTOMER : compra
   INVOICE_SUPPLIERS ||--o| INVOICE_REFERENCE : origina
-  INVOICE_CUSTOMER  ||--o| INVOICE_REFERENCE : origina
-  USERS ||--o{ ITEMS : gestiona
-  USERS ||--o{ STORES : gestiona
-  USERS ||--o{ STOCK : registra
-  USERS ||--o{ BRANDS : gestiona
-  USERS ||--o{ CATEGORIES : gestiona
+  INVOICE_CUSTOMER  ||--o| INVOICE_REFERENCE : origina  
 ```
 
 ## Tabla "products"
