@@ -223,6 +223,22 @@ export const products = mysqlTable('products', {
 
 ```
 
+**Sqlite**
+
+```sql
+CREATE TABLE products (
+  id TEXT NOT NULL DEFAULT (lower(hex(randomblob(16)))),
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
+  updated_at TEXT,
+  status TEXT NOT NULL DEFAULT 'enabled' CHECK(status IN ('enabled', 'disabled', 'suspended')),
+  PRIMARY KEY (id),
+  UNIQUE (name)
+);
+```
+
+
 ## Tabla “manufacturers“
 
 La tabla **manufacturers** contiene el listado de fabricantes, productores, extractores o ensambladores del bien físico que se comercializa. Es la entidad jurídica o persona natural responsable de la transformación, producción o cultivo del artículo, otorgándole una identidad visible al consumidor, generalmente a través de una marca comercial (gestionada en la tabla brands).

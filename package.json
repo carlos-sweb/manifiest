@@ -8,7 +8,7 @@
     "css": "bun run scripts/build-css.ts -i=pum/index.css -o=www/styles.css",
     "build": "bun run codegen && bun run css && bun run build/build.ts",
     "static": "bun run build && bun run build/static.ts",
-    "dev": "bun run build && bun run scripts/dev-server.ts"
+    "dev": "bun run build && bun --port=9000 www/index.html"
   },
   "devDependencies": {
     "@pandacss/dev": "^1.12.1",
