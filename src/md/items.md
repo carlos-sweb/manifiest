@@ -27,22 +27,22 @@ Estas promesas no son un lujo técnico. Son la condición para que el negocio pu
 ## PRIMERO: El Modelo
 
 ```mermaid
-graph LR
-  PRODUCTS["PRODUCTS"] -->|"define concepto"| ITEMS["ITEMS"]
-  BRANDS["BRANDS"]    -->|"identifica"| ITEMS
-  CATEGORIES["CATEGORIES"] -->|"clasifica"| ITEMS
-  ITEMS -->|"registra movimiento"| STOCK["STOCK"]
-  STORES["STORES"] -->|"almacena"| STOCK
-  INVOICE_REFERENCE["INVOICE_REFERENCE"] -->|"documenta"| STOCK
-  SUPPLIERS["SUPPLIERS"] -->|"provee"| INVOICE_SUPPLIERS["INVOICE_SUPPLIERS"]
-  CUSTOMERS["CUSTOMERS"] -->|"compra"| INVOICE_CUSTOMER["INVOICE_CUSTOMER"]
-  INVOICE_SUPPLIERS -->|"origina"| INVOICE_REFERENCE
-  INVOICE_CUSTOMER -->|"origina"| INVOICE_REFERENCE
-  USERS["USERS"] -->|"gestiona"| ITEMS
-  USERS -->|"gestiona"| STORES
-  USERS -->|"registra"| STOCK
-  USERS -->|"gestiona"| BRANDS
-  USERS -->|"gestiona"| CATEGORIES
+erDiagram
+  PRODUCTS ||--o{ ITEMS : "define concepto"
+  BRANDS   ||--o{ ITEMS : identifica
+  CATEGORIES ||--o{ ITEMS : clasifica
+  ITEMS    ||--o{ STOCK : "registra movimiento"
+  STORES   ||--o{ STOCK : almacena
+  INVOICE_REFERENCE ||--o{ STOCK : documenta
+  SUPPLIERS ||--o{ INVOICE_SUPPLIERS : provee
+  CUSTOMERS ||--o{ INVOICE_CUSTOMER : compra
+  INVOICE_SUPPLIERS ||--o| INVOICE_REFERENCE : origina
+  INVOICE_CUSTOMER  ||--o| INVOICE_REFERENCE : origina
+  USERS ||--o{ ITEMS : gestiona
+  USERS ||--o{ STORES : gestiona
+  USERS ||--o{ STOCK : registra
+  USERS ||--o{ BRANDS : gestiona
+  USERS ||--o{ CATEGORIES : gestiona
 ```
 
 ## Tabla "products"

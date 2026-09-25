@@ -12,7 +12,7 @@
   {
    "link": "primero-el-modelo",
    "text": "PRIMERO: El Modelo",
-   "html": "<pre><code class=\"language-mermaid\">graph LR\n  PRODUCTS[\"PRODUCTS\"] --&gt;|\"define concepto\"| ITEMS[\"ITEMS\"]\n  BRANDS[\"BRANDS\"]    --&gt;|\"identifica\"| ITEMS\n  CATEGORIES[\"CATEGORIES\"] --&gt;|\"clasifica\"| ITEMS\n  ITEMS --&gt;|\"registra movimiento\"| STOCK[\"STOCK\"]\n  STORES[\"STORES\"] --&gt;|\"almacena\"| STOCK\n  INVOICE_REFERENCE[\"INVOICE_REFERENCE\"] --&gt;|\"documenta\"| STOCK\n  SUPPLIERS[\"SUPPLIERS\"] --&gt;|\"provee\"| INVOICE_SUPPLIERS[\"INVOICE_SUPPLIERS\"]\n  CUSTOMERS[\"CUSTOMERS\"] --&gt;|\"compra\"| INVOICE_CUSTOMER[\"INVOICE_CUSTOMER\"]\n  INVOICE_SUPPLIERS --&gt;|\"origina\"| INVOICE_REFERENCE\n  INVOICE_CUSTOMER --&gt;|\"origina\"| INVOICE_REFERENCE\n  USERS[\"USERS\"] --&gt;|\"gestiona\"| ITEMS\n  USERS --&gt;|\"gestiona\"| STORES\n  USERS --&gt;|\"registra\"| STOCK\n  USERS --&gt;|\"gestiona\"| BRANDS\n  USERS --&gt;|\"gestiona\"| CATEGORIES\n</code></pre>"
+   "html": "<pre><code class=\"language-mermaid\">erDiagram\n  PRODUCTS ||--o{ ITEMS : \"define concepto\"\n  BRANDS   ||--o{ ITEMS : identifica\n  CATEGORIES ||--o{ ITEMS : clasifica\n  ITEMS    ||--o{ STOCK : \"registra movimiento\"\n  STORES   ||--o{ STOCK : almacena\n  INVOICE_REFERENCE ||--o{ STOCK : documenta\n  SUPPLIERS ||--o{ INVOICE_SUPPLIERS : provee\n  CUSTOMERS ||--o{ INVOICE_CUSTOMER : compra\n  INVOICE_SUPPLIERS ||--o| INVOICE_REFERENCE : origina\n  INVOICE_CUSTOMER  ||--o| INVOICE_REFERENCE : origina\n  USERS ||--o{ ITEMS : gestiona\n  USERS ||--o{ STORES : gestiona\n  USERS ||--o{ STOCK : registra\n  USERS ||--o{ BRANDS : gestiona\n  USERS ||--o{ CATEGORIES : gestiona\n</code></pre>"
   },
   {
    "link": "tabla-products",
