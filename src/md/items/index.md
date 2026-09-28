@@ -129,9 +129,11 @@ END;
 erDiagram
     MANUFACTURERS ||--o{ BRANDS : "fabrica"
     PRODUCTS ||--o{ ITEMS : "define concepto"
-    BRANDS |o--o{ ITEMS : "identifica"
+    BRANDS ||--o{ ITEMS : "identifica"
     CATEGORIES ||--o{ SUBCATEGORIES : "se divide en"
     SUBCATEGORIES ||--o{ ITEMS : "clasifica"
+    UNITS ||--o{ ITEMS : "mide contenido"
+    PACKAGINGS ||--o{ ITEMS : "empaca"
     ITEMS ||--o{ ITEM_TAGS : "lleva"
     TAGS ||--o{ ITEM_TAGS : "se aplica a"
     ITEMS ||--o{ STOCK : "registra movimiento"
@@ -164,7 +166,7 @@ Producto: Papas fritas. Items: Papas Fritas Tim 150 g, Papas Fritas Marco Polo 1
 
 **Verdulería**
 
-Producto: Limón. Items: Limón Eureka, Limón Sutil, Limón Meyer, Limón de Pica. Aunque a veces haya un solo artículo por producto, mantener la separación conserva una estructura uniforme en todos los rubros.
+Producto: Limón. Items: Limón Eureka, Limón Sutil, Limón Meyer, Limón de Pica. Aunque a veces haya un solo artículo por producto, mantener la separación conserva una estructura uniforme en todos los rubros. Si el productor no tiene marca comercial, el ítem usa la marca `General` de ese fabricante.
 
 ### Identidad del producto
 
@@ -289,6 +291,8 @@ Listado de fabricantes: personas naturales o entidades jurídicas responsables d
 
 La marca es el rostro que ve el cliente (Marco Polo, Truper, Merck). El fabricante es quien opera la línea de producción (ICB S.A., Truper S.A. de C.V., Merck Serono S.A.). Aunque esta tabla tendrá poco movimiento, permite responder "¿qué laboratorio vende más?" o "¿qué fabricante tiene mejor rotación?". El proveedor del software podrá ofrecer datos precargados por país o región.
 
+**Regla de alta:** al crear un fabricante se crea automáticamente su marca por defecto `General` (única por laboratorio). Todo artículo “sin marca comercial” usa esa marca `General` del fabricante correspondiente.
+
 ### Descripción de la tabla
 
 | Campo        | Descripción                          |
@@ -372,19 +376,21 @@ Listado de marcas comerciales. Asocia cada artículo de `items` con su marca. A 
 
 ### Filosofía de diseño
 
-No todo artículo tiene marca: en la verdulería el limón suele venderse sin ella. La relación `items.brand_id` admite nulos. `manufacturer_id` también admite nulo cuando la marca existe pero el fabricante aún no está cargado; cuando se conoce, se vincula para reportes gerenciales.
+**Toda marca tiene fabricante** (`manufacturer_id` obligatorio). **Todo fabricante tiene al menos la marca `General`**. El nombre de marca es único **dentro** del fabricante: `UNIQUE (manufacturer_id, name)`, de modo que Merck y Opko pueden tener cada uno su `General`.
+
+Cuando el artículo no tiene rostro comercial (genérico Cenabast, limón de un productor), no se deja `brand_id` nulo: se usa la marca `General` de ese fabricante. Si el laboratorio aún no está en el padrón, se crea primero en `manufacturers` (con su `General` automática) y después las marcas comerciales adicionales (Artren, FlexFull, Diclotaren, …).
 
 ### Descripción de la tabla
 
-| Campo             | Descripción                          |
-|-------------------|--------------------------------------|
-| `id`              | Identificador único (UUID)           |
-| `name`            | Nombre de la marca (único)           |
-| `manufacturer_id` | Fabricante; nulo si aún no se conoce |
-| `user_id`         | Usuario que creó el registro         |
-| `created_at`      | Fecha de creación                    |
-| `updated_at`      | Fecha de la última modificación      |
-| `status`          | `enabled` / `disabled` / `suspended` |
+| Campo             | Descripción                                      |
+|-------------------|--------------------------------------------------|
+| `id`              | Identificador único (UUID)                       |
+| `name`            | Nombre de la marca (único por fabricante)        |
+| `manufacturer_id` | Fabricante (obligatorio)                         |
+| `user_id`         | Usuario que creó el registro                     |
+| `created_at`      | Fecha de creación                                |
+| `updated_at`      | Fecha de la última modificación                  |
+| `status`          | `enabled` / `disabled` / `suspended`             |
 
 ### MySQL / MariaDB
 
@@ -392,13 +398,13 @@ No todo artículo tiene marca: en la verdulería el limón suele venderse sin el
 CREATE TABLE `brands` (
   `id` CHAR(36) NOT NULL DEFAULT (UUID()),
   `name` VARCHAR(255) NOT NULL,
-  `manufacturer_id` CHAR(36) NULL,
+  `manufacturer_id` CHAR(36) NOT NULL,
   `user_id` CHAR(36) NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `status` VARCHAR(20) NOT NULL DEFAULT 'enabled',
   PRIMARY KEY (`id`),
-  UNIQUE (`name`),
+  UNIQUE (`manufacturer_id`, `name`),
   CONSTRAINT `brands_status_check`
     CHECK (`status` IN ('enabled', 'disabled', 'suspended')),
   CONSTRAINT `fk_brands_manufacturer`
@@ -407,9 +413,12 @@ CREATE TABLE `brands` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
 );
 
-INSERT INTO `brands` (`name`, `user_id`) VALUES
-  ('Merck Serono', '00000000-0000-4000-8000-000000000001'),
-  ('Laboratorios Chile', '00000000-0000-4000-8000-000000000001');
+-- Tras crear manufacturers, cada uno recibe su marca General (regla de alta).
+INSERT INTO `brands` (`name`, `manufacturer_id`, `user_id`) VALUES
+  ('General', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000001'),
+  ('Artren', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000001'),
+  ('General', '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001'),
+  ('Diclotaren', '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001');
 ```
 
 ### PostgreSQL
@@ -418,13 +427,13 @@ INSERT INTO `brands` (`name`, `user_id`) VALUES
 CREATE TABLE brands (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
-  manufacturer_id UUID REFERENCES manufacturers(id) ON DELETE RESTRICT,
+  manufacturer_id UUID NOT NULL REFERENCES manufacturers(id) ON DELETE RESTRICT,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'enabled'
     CHECK (status IN ('enabled', 'disabled', 'suspended')),
-  CONSTRAINT brands_name_unique UNIQUE (name)
+  CONSTRAINT brands_manufacturer_name_unique UNIQUE (manufacturer_id, name)
 );
 
 CREATE TRIGGER brands_set_updated_at
@@ -444,13 +453,14 @@ CREATE TABLE brands (
     substr(lower(hex(randomblob(2))), 2) || '-' ||
     lower(hex(randomblob(6)))
   ),
-  name TEXT NOT NULL UNIQUE,
-  manufacturer_id TEXT REFERENCES manufacturers(id) ON DELETE RESTRICT,
+  name TEXT NOT NULL,
+  manufacturer_id TEXT NOT NULL REFERENCES manufacturers(id) ON DELETE RESTRICT,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
   updated_at TEXT,
   status TEXT NOT NULL DEFAULT 'enabled'
-    CHECK (status IN ('enabled', 'disabled', 'suspended'))
+    CHECK (status IN ('enabled', 'disabled', 'suspended')),
+  UNIQUE (manufacturer_id, name)
 );
 
 CREATE TRIGGER brands_set_updated_at
@@ -474,6 +484,8 @@ Categorías del negocio: las clases esenciales bajo las cuales se clasifica cada
 ### Filosofía de diseño
 
 La categoría clasifica por esencia, no por accidente. Atributos transversales como "enlatado" u "oferta" se resuelven con `tags`. Solo el administrador crea categorías, para evitar duplicados con nombres similares. No se eliminan: cambian de `status`.
+
+**Regla de alta:** una categoría **nunca** existe sin subcategoría. Al crear una categoría se inserta automáticamente la subcategoría `General` (equivale a “sin subcategoría”, con un nombre más elegante). El artículo siempre apunta a una `subcategory_id` real; si el negocio no necesita subdividir, usa `General`.
 
 ### Descripción de la tabla
 
@@ -503,6 +515,11 @@ CREATE TABLE `categories` (
   CONSTRAINT `fk_categories_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
 );
+
+-- Tras crear la categoría, siempre se inserta su subcategoría General (regla de alta).
+-- Ejemplo:
+-- INSERT INTO categories (id, name, user_id) VALUES (@cat, 'Medicamentos', @user);
+-- INSERT INTO subcategories (name, category_id, user_id) VALUES ('General', @cat, @user);
 ```
 
 ### PostgreSQL
@@ -564,19 +581,21 @@ Segundo nivel del árbol de clasificación. Cada subcategoría pertenece a exact
 
 ### Filosofía de diseño
 
-El árbol no se bifurca: una subcategoría tiene un solo padre y un artículo pertenece a una sola subcategoría. El nombre es único **dentro** de su categoría: "Conservas" puede existir bajo "Verduras" y bajo "Frutas".
+El árbol no se bifurca: una subcategoría tiene un solo padre y un artículo pertenece a una sola subcategoría. El nombre es único **dentro** de su categoría: "Conservas" puede existir bajo "Verduras" y bajo "Frutas"; cada categoría tiene su propio `General`.
+
+**Toda categoría tiene al menos la subcategoría `General`.** Equivale a “sin subdivisión”, pero mantiene `items.subcategory_id` siempre NOT NULL (mismo patrón que la marca `General` del fabricante). Las subcategorías comerciales adicionales (Analgésicos, Conservas, …) se agregan después.
 
 ### Descripción de la tabla
 
-| Campo         | Descripción                          |
-|---------------|--------------------------------------|
-| `id`          | Identificador único (UUID)           |
-| `category_id` | Categoría padre                      |
-| `name`        | Nombre de la subcategoría            |
-| `user_id`     | Usuario que creó el registro         |
-| `created_at`  | Fecha de creación                    |
-| `updated_at`  | Fecha de la última modificación      |
-| `status`      | `enabled` / `disabled` / `suspended` |
+| Campo         | Descripción                                      |
+|---------------|--------------------------------------------------|
+| `id`          | Identificador único (UUID)                       |
+| `category_id` | Categoría padre                                  |
+| `name`        | Nombre de la subcategoría (único por categoría)  |
+| `user_id`     | Usuario que creó el registro                     |
+| `created_at`  | Fecha de creación                                |
+| `updated_at`  | Fecha de la última modificación                  |
+| `status`      | `enabled` / `disabled` / `suspended`             |
 
 ### MySQL / MariaDB
 
@@ -598,6 +617,10 @@ CREATE TABLE `subcategories` (
   CONSTRAINT `fk_subcategories_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
 );
+
+INSERT INTO `subcategories` (`name`, `category_id`, `user_id`) VALUES
+  ('General', '00000000-0000-4000-8000-000000000020', '00000000-0000-4000-8000-000000000001'),
+  ('Analgesicos y antiinflamatorios', '00000000-0000-4000-8000-000000000020', '00000000-0000-4000-8000-000000000001');
 ```
 
 ### PostgreSQL
@@ -776,33 +799,430 @@ CREATE TABLE item_tags (
 > Nota de orden de creación: `item_tags` requiere que `items` exista. En un script de migración, crear `tags` e `items` antes de `item_tags`.
 
 
+## Tabla "units"
+
+### Propósito
+
+Catálogo precargado de **unidades de medida** de propósito general para comercio e inventario (mostrador, bodega, e-commerce). Sirve para expresar cuánto contenido lleva un artículo (`items.content_qty` + `items.unit_id`), sin atar el software a un solo rubro ni convertirse en un motor de física.
+
+### Filosofía de diseño
+
+Las unidades son hechos estables. No las inventa cada negocio: se precargan. Un kilo es un kilo en farmacia, almacén o verdulería. La dimensión evita mezclar “50 mg” con “50 ml”.
+
+Criterio de inclusión: ¿aparece en etiqueta, ticket, factura o pedido de compra en retail/mayorista habitual (LATAM, US, UK/EU)? Si no → fuera del seed.
+
+El negocio **no** crea unidades ad hoc (“pote”, “blíster”): eso es `packagings`.
+
+Códigos ASCII estables (`mcg` en lugar de `µg`; `gal_us` / `gal_uk` cuando US y UK difieren).
+
+#### Dimensiones
+
+| dimension | Uso comercial |
+|-----------|---------------|
+| `mass` | Peso / masa |
+| `volume` | Volumen / capacidad |
+| `count` | Conteo (unidades, docenas…) |
+| `length` | Longitud |
+| `area` | Superficie (pisos, telas, terrenos) |
+| `time` | Tiempo vendible (servicio, alquiler) |
+
+#### Seed curado (comercio / inventario)
+
+| code | name | dimension | Notas |
+|------|------|-----------|-------|
+| `kg` | Kilogramo | mass | SI |
+| `g` | Gramo | mass | SI |
+| `mg` | Miligramo | mass | Farmacia / dosificación |
+| `mcg` | Microgramo | mass | Farmacia (`µg` → `mcg`) |
+| `lb` | Libra | mass | Avoirdupois (US/UK comercio) |
+| `oz` | Onza | mass | Avoirdupois |
+| `t` | Tonelada métrica | mass | 1000 kg |
+| `ton_us` | Tonelada corta (EE.UU.) | mass | 2000 lb; distinta de `t` |
+| `L` | Litro | volume | SI (nombre especial de dm³) |
+| `ml` | Mililitro | volume | SI |
+| `m3` | Metro cúbico | volume | SI |
+| `cm3` | Centímetro cúbico | volume | = cc |
+| `gal_us` | Galón (EE.UU.) | volume | ≠ galón UK |
+| `gal_uk` | Galón (UK) | volume | Imperial |
+| `fl_oz_us` | Onza líquida (EE.UU.) | volume | |
+| `fl_oz_uk` | Onza líquida (UK) | volume | |
+| `pt_us` | Pinta (EE.UU.) | volume | |
+| `qt_us` | Cuarto de galón (EE.UU.) | volume | |
+| `und` | Unidad | count | Pieza / each |
+| `doz` | Docena | count | 12 |
+| `pair` | Par | count | 2 |
+| `gross` | Gruesa | count | 144 |
+| `ui` | Unidad internacional | count | Farmacia (conteo convencional) |
+| `m` | Metro | length | SI |
+| `cm` | Centímetro | length | SI |
+| `mm` | Milímetro | length | SI |
+| `km` | Kilómetro | length | SI |
+| `in` | Pulgada | length | |
+| `ft` | Pie | length | |
+| `yd` | Yarda | length | |
+| `m2` | Metro cuadrado | area | SI |
+| `cm2` | Centímetro cuadrado | area | SI |
+| `ha` | Hectárea | area | |
+| `ft2` | Pie cuadrado | area | |
+| `acre` | Acre | area | |
+| `s` | Segundo | time | SI |
+| `min` | Minuto | time | |
+| `h` | Hora | time | |
+| `d` | Día | time | |
+
+#### Excluidos (a propósito)
+
+| Excluido | Motivo |
+|----------|--------|
+| Cucharada / cucharadita | No son unidades de inventario estables |
+| Quilate (gemas), grain troy, assay ton | Nicho; no retail general |
+| Stone, hundredweight, furlong, bushel, peck | Arcaicas / agrícolas especializadas |
+| Barril (bbl) | Definición ambigua (petróleo vs otros) |
+| Temperatura, energía, presión, ángulo | Fuera del mostrador en fase 1 |
+| Prefijos SI raros (dag, hg, …) | Ruido; bastan kg/g/mg/mcg |
+
+Conversiones (`factor_to_si`) quedan diferidas: el seed no las requiere para vender ni stockear.
+
+### Descripción de la tabla
+
+Una **unidad de medida** es el patrón con el que se cuantifica el **contenido** de un artículo. No describe el empaque (pomo, caja, bolsa → `packagings`) ni el precio: solo responde *“¿en qué se cuenta o se mide lo que hay dentro?”*.
+
+En el ítem, la cantidad y la unidad van juntas:
+
+```text
+items.content_qty  +  items.unit_id  →  “50 mg”, “30 g”, “1.5 L”, “12 und”
+```
+
+Ejemplos:
+
+| Negocio | content_qty | unit (`code`) | Lectura |
+|---------|-------------|----------------|---------|
+| Farmacia | 50 | `mg` | 50 miligramos por comprimido / dosis tipificada |
+| Almacén | 150 | `g` | 150 gramos de contenido en la bolsa |
+| Verdulería | 1 | `kg` | 1 kilogramo (p. ej. malla de limón) |
+| Ferretería | 1 | `und` | 1 unidad (el conteo del pack va en `pack_qty`) |
+| Pinturas | 4 | `L` | 4 litros de producto |
+
+Sin unidad no hay forma estable de comparar ni de stockear: “50” solo no significa nada; “50 mg” y “50 ml” son magnitudes distintas (`dimension` distinta).
+
+| Campo        | Descripción |
+|--------------|-------------|
+| `id`         | Identificador único (UUID) de la unidad en el padrón. |
+| `code`       | Código corto, único y estable para sistemas (`kg`, `mg`, `gal_us`). ASCII; sin símbolos (`mcg` en lugar de `µg`). Es lo que usa la aplicación en APIs, imports y reglas. |
+| `name`       | Nombre legible para humanos en la UI (“Kilogramo”, “Galón (EE.UU.)”). Único. |
+| `dimension`  | Familia de magnitud: `mass`, `volume`, `count`, `length`, `area` o `time`. Impide tratar como equivalentes unidades de familias distintas. |
+| `created_at` | Fecha de carga o alta en el catálogo precargado. |
+| `status`     | Ciclo de vida: `enabled` / `disabled` / `suspended`. Una unidad en desuso no se borra. |
+
+### MySQL / MariaDB
+
+```sql
+CREATE TABLE `units` (
+  `id` CHAR(36) NOT NULL DEFAULT (UUID()),
+  `code` VARCHAR(16) NOT NULL,
+  `name` VARCHAR(64) NOT NULL,
+  `dimension` VARCHAR(16) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'enabled',
+  PRIMARY KEY (`id`),
+  UNIQUE (`code`),
+  UNIQUE (`name`),
+  CONSTRAINT `units_dimension_check`
+    CHECK (`dimension` IN ('mass', 'volume', 'count', 'length', 'area', 'time')),
+  CONSTRAINT `units_status_check`
+    CHECK (`status` IN ('enabled', 'disabled', 'suspended'))
+);
+
+INSERT INTO `units` (`code`, `name`, `dimension`) VALUES
+  -- mass
+  ('kg', 'Kilogramo', 'mass'),
+  ('g', 'Gramo', 'mass'),
+  ('mg', 'Miligramo', 'mass'),
+  ('mcg', 'Microgramo', 'mass'),
+  ('lb', 'Libra', 'mass'),
+  ('oz', 'Onza', 'mass'),
+  ('t', 'Tonelada métrica', 'mass'),
+  ('ton_us', 'Tonelada corta (EE.UU.)', 'mass'),
+  -- volume
+  ('L', 'Litro', 'volume'),
+  ('ml', 'Mililitro', 'volume'),
+  ('m3', 'Metro cúbico', 'volume'),
+  ('cm3', 'Centímetro cúbico', 'volume'),
+  ('gal_us', 'Galón (EE.UU.)', 'volume'),
+  ('gal_uk', 'Galón (UK)', 'volume'),
+  ('fl_oz_us', 'Onza líquida (EE.UU.)', 'volume'),
+  ('fl_oz_uk', 'Onza líquida (UK)', 'volume'),
+  ('pt_us', 'Pinta (EE.UU.)', 'volume'),
+  ('qt_us', 'Cuarto de galón (EE.UU.)', 'volume'),
+  -- count
+  ('und', 'Unidad', 'count'),
+  ('doz', 'Docena', 'count'),
+  ('pair', 'Par', 'count'),
+  ('gross', 'Gruesa', 'count'),
+  ('ui', 'Unidad internacional', 'count'),
+  -- length
+  ('m', 'Metro', 'length'),
+  ('cm', 'Centímetro', 'length'),
+  ('mm', 'Milímetro', 'length'),
+  ('km', 'Kilómetro', 'length'),
+  ('in', 'Pulgada', 'length'),
+  ('ft', 'Pie', 'length'),
+  ('yd', 'Yarda', 'length'),
+  -- area
+  ('m2', 'Metro cuadrado', 'area'),
+  ('cm2', 'Centímetro cuadrado', 'area'),
+  ('ha', 'Hectárea', 'area'),
+  ('ft2', 'Pie cuadrado', 'area'),
+  ('acre', 'Acre', 'area'),
+  -- time
+  ('s', 'Segundo', 'time'),
+  ('min', 'Minuto', 'time'),
+  ('h', 'Hora', 'time'),
+  ('d', 'Día', 'time');
+```
+
+### PostgreSQL
+
+```sql
+CREATE TABLE units (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(16) NOT NULL,
+  name VARCHAR(64) NOT NULL,
+  dimension TEXT NOT NULL
+    CHECK (dimension IN ('mass', 'volume', 'count', 'length', 'area', 'time')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  status TEXT NOT NULL DEFAULT 'enabled'
+    CHECK (status IN ('enabled', 'disabled', 'suspended')),
+  CONSTRAINT units_code_unique UNIQUE (code),
+  CONSTRAINT units_name_unique UNIQUE (name)
+);
+```
+
+### SQLite
+
+```sql
+CREATE TABLE units (
+  id TEXT NOT NULL PRIMARY KEY DEFAULT (
+    lower(hex(randomblob(4))) || '-' ||
+    lower(hex(randomblob(2))) || '-4' ||
+    substr(lower(hex(randomblob(2))), 2) || '-' ||
+    substr('89ab', 1 + (abs(random()) % 4), 1) ||
+    substr(lower(hex(randomblob(2))), 2) || '-' ||
+    lower(hex(randomblob(6)))
+  ),
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL UNIQUE,
+  dimension TEXT NOT NULL
+    CHECK (dimension IN ('mass', 'volume', 'count', 'length', 'area', 'time')),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
+  status TEXT NOT NULL DEFAULT 'enabled'
+    CHECK (status IN ('enabled', 'disabled', 'suspended'))
+);
+```
+
+
+## Tabla "packagings"
+
+### Propósito
+
+Catálogo de **empaques** (el continente físico o comercial): pomo, blíster, caja, bolsa, botella, saco, malla, unidad suelta, etc. Describe *en qué* viene el contenido medido, no *cuánto* mide (eso es `units` + `content_qty`).
+
+### Filosofía de diseño
+
+El empaque es un padrón del negocio: se puede precargar un set común y el usuario agrega los suyos. No confundir con la unidad de medida: “caja” no es una unidad; “und” sí. Una caja puede contener 100 unidades (`pack_qty = 100`, `unit = und`) o un pomo puede contener 30 g (`content_qty = 30`, `unit = g`, `packaging = pomo`, `pack_qty = 1`).
+
+Sirve a cualquier rubro: farmacia (pomo, blíster), almacén (bolsa), verdulería (malla), ferretería (caja).
+
+### Descripción de la tabla
+
+| Campo        | Descripción |
+|--------------|-------------|
+| `id`         | Identificador único (UUID) |
+| `name`       | Nombre del empaque (único) |
+| `user_id`    | Usuario que creó el registro |
+| `created_at` | Fecha de creación |
+| `updated_at` | Fecha de la última modificación |
+| `status`     | `enabled` / `disabled` / `suspended` |
+
+### MySQL / MariaDB
+
+```sql
+CREATE TABLE `packagings` (
+  `id` CHAR(36) NOT NULL DEFAULT (UUID()),
+  `name` VARCHAR(64) NOT NULL,
+  `user_id` CHAR(36) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'enabled',
+  PRIMARY KEY (`id`),
+  UNIQUE (`name`),
+  CONSTRAINT `packagings_status_check`
+    CHECK (`status` IN ('enabled', 'disabled', 'suspended')),
+  CONSTRAINT `fk_packagings_user`
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
+);
+
+INSERT INTO `packagings` (`name`, `user_id`) VALUES
+  ('unidad', '00000000-0000-4000-8000-000000000001'),
+  ('pomo', '00000000-0000-4000-8000-000000000001'),
+  ('blister', '00000000-0000-4000-8000-000000000001'),
+  ('caja', '00000000-0000-4000-8000-000000000001'),
+  ('bolsa', '00000000-0000-4000-8000-000000000001'),
+  ('botella', '00000000-0000-4000-8000-000000000001'),
+  ('frasco', '00000000-0000-4000-8000-000000000001'),
+  ('saco', '00000000-0000-4000-8000-000000000001'),
+  ('malla', '00000000-0000-4000-8000-000000000001');
+```
+
+### PostgreSQL
+
+```sql
+CREATE TABLE packagings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(64) NOT NULL,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'enabled'
+    CHECK (status IN ('enabled', 'disabled', 'suspended')),
+  CONSTRAINT packagings_name_unique UNIQUE (name)
+);
+
+CREATE TRIGGER packagings_set_updated_at
+BEFORE UPDATE ON packagings
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+```
+
+### SQLite
+
+```sql
+CREATE TABLE packagings (
+  id TEXT NOT NULL PRIMARY KEY DEFAULT (
+    lower(hex(randomblob(4))) || '-' ||
+    lower(hex(randomblob(2))) || '-4' ||
+    substr(lower(hex(randomblob(2))), 2) || '-' ||
+    substr('89ab', 1 + (abs(random()) % 4), 1) ||
+    substr(lower(hex(randomblob(2))), 2) || '-' ||
+    lower(hex(randomblob(6)))
+  ),
+  name TEXT NOT NULL UNIQUE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
+  updated_at TEXT,
+  status TEXT NOT NULL DEFAULT 'enabled'
+    CHECK (status IN ('enabled', 'disabled', 'suspended'))
+);
+
+CREATE TRIGGER packagings_set_updated_at
+AFTER UPDATE ON packagings
+FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE packagings
+  SET updated_at = strftime('%Y-%m-%d %H:%M:%S', 'now')
+  WHERE id = NEW.id;
+END;
+```
+
+
 ## Tabla "items"
 
 ### Propósito
 
-Artículos disponibles para la venta: la individualización de un producto genérico en una presentación comercial concreta. El producto es el concepto ("Papas fritas"); el artículo es lo que se compra y se vende ("Papas Fritas Marco Polo 150 g").
+Artículos disponibles para la venta: la individualización de un producto genérico en una **presentación** comercial concreta. El producto es el concepto ("Papas fritas", "Diclofenaco"); el artículo es lo que se compra y se vende ("Marco Polo 150 g bolsa", "Diclotaren gel pomo 30 g").
 
 ### Filosofía de diseño
 
-Un artículo individualiza al producto mediante atributos comerciales. La marca puede no existir. Dos artículos del mismo producto y la misma marca se distinguen por la presentación. La clasificación se resuelve con la subcategoría. El precio se almacena como entero en la unidad mínima de la moneda.
+Un artículo individualiza al producto mediante atributos comerciales. **Todo artículo tiene marca** (`brand_id` obligatorio): si no hay rostro comercial, se usa la marca `General` del fabricante. La clasificación se resuelve con la subcategoría. El precio se almacena como entero en la unidad mínima de la moneda.
 
-Para cumplir "nada se duplica" cuando `brand_id` es nulo, se materializa `brand_key = COALESCE(brand_id, '00000000-0000-0000-0000-000000000000')` y la unicidad opera sobre `(product_id, brand_key, presentation)`.
+#### Qué es Presentación (propósito general)
+
+**Presentación** = la **unidad comercial que el cliente paga**: cómo viene medido y empacado el producto de esa marca.
+
+```text
+item ≈ product + brand + contenido(content_qty, unit) + empaque(packaging, pack_qty) + price
+```
+
+| Pieza | Tabla / campo | Pregunta que responde |
+|-------|---------------|------------------------|
+| Concepto | `products` | ¿Qué es? |
+| Fabricante | `manufacturers` (vía brand) | ¿Quién lo produce? |
+| Marca | `brands` | ¿Con qué rostro se vende? (`General` si no hay) |
+| Contenido | `content_qty` + `unit_id` | ¿Cuánto hay dentro? (50 mg, 30 g, 1 kg, 20 ml) |
+| Empaque | `packaging_id` + `pack_qty` | ¿En qué viene y cuántos packs? (pomo ×1, blíster ×10, caja ×100) |
+| Etiqueta | `presentation` | ¿Cómo se lee en el mostrador / ticket? |
+| Precio | `price` | ¿Cuánto cuesta esa unidad comercial? |
+
+Misma estructura en cualquier rubro:
+
+| Rubro | product | brand | content_qty | unit | packaging | pack_qty | presentation (etiqueta) |
+|-------|---------|-------|-------------|------|-----------|----------|-------------------------|
+| Farmacia | Diclofenaco | Diclotaren | 30 | g | pomo | 1 | `Gel 1% pomo 30 g` |
+| Farmacia | Diclofenaco | General (Cenabast) | 50 | mg | blister | 10 | `Sódico 50 mg × 10 comprimidos` |
+| Almacén | Papas fritas | Marco Polo | 150 | g | bolsa | 1 | `150 g bolsa` |
+| Verdulería | Limón | General | 1 | kg | malla | 1 | `malla 1 kg` |
+| Ferretería | Tornillo | General | 1 | und | caja | 100 | `caja × 100 und` |
+
+Lo específico del rubro (sal química, “retard”, “infantil”, “entérico”) vive en **tags** o en el texto de `presentation`, no en columnas de farmacia. Así el esquema sigue siendo de propósito general.
+
+**Identidad del SKU (nada se duplica):**
+
+```text
+UNIQUE (product_id, brand_id, unit_id, content_qty, packaging_id, pack_qty)
+```
+
+`presentation` es la etiqueta legible (generada o editable). Si los ejes tipados coinciden, es el mismo artículo aunque el texto difiera.
+
+Regla práctica: si dos cajas no se pueden sustituir en el mostrador, son **dos `items`**.
+
+**Farmacia — Diclofenaco (caso real)**
+
+En una farmacia chilena (p. ej. EcoFarmacias con “diclo”) el mismo principio activo aparece decenas de veces. Un solo `products.name = 'Diclofenaco'`; muchos `items`.
+
+| manufacturer | brand | content_qty | unit | packaging | pack_qty | presentation | tags | price |
+|--------------|-------|-------------|------|-----------|----------|--------------|------|-------|
+| Opko | General | 100 | mg | caja | 8 | Retard 100 mg × 8 cápsulas | `oral`, `retard` | 4590 |
+| Cenabast | General | 50 | mg | blister | 10 | Sódico 50 mg × 10 comprimidos entéricos | `oral` | 1290 |
+| Laboratorio Chile | Diclotaren | 30 | g | pomo | 1 | Gel 1% pomo 30 g | `tópico` | 3250 |
+| Genomma Lab Chile S.A. | FlexFull | 35 | g | pomo | 1 | Gel 1% (dietilamina) pomo 35 g | `tópico` | 6980 |
+| Merck | Artren | 20 | ml | frasco | 1 | Resinato gotas 1,5% suspensión oral 20 ml | `oral`, `pediátrico` | 12990 |
+| ITF Labomed | Flector | 60 | g | pomo | 1 | Gel epolamina 1% pomo 60 g | `tópico` | 9990 |
+| Tecnofarma | Pro Lertus | 140 | mg | caja | 20 | Colestiramina 140 mg × 20 cápsulas | `oral` | 8990 |
+| CuraSpring | General | 30 | g | pomo | 1 | Dietilamina 1,16% gel tópico 30 g | `tópico` | 2790 |
+
+Lectura:
+
+1. Un `products`: Diclofenaco.
+2. Fabricante + marca siempre (genéricos → `General` del lab).
+3. Contenido y empaque tipados (`units` / `packagings`); la etiqueta `presentation` se lee en caja/ticket.
+4. Tags para filtros transversales.
+5. Stock y ventas por `item_id`.
+
+**Qué no hacer**
+
+- No crear `products` “Diclofenaco gel” / “Diclofenaco 50 mg”.
+- No poner el precio dentro de `presentation`.
+- No inventar unidades de medida por negocio (“pote” como unit): usar `packagings`.
+- No modelar sal química / “retard” como columnas globales: tags o texto en la etiqueta.
 
 ### Descripción de la tabla
 
-| Campo            | Descripción                                      |
-|------------------|--------------------------------------------------|
-| `id`             | Identificador único (UUID)                       |
-| `user_id`        | Usuario que creó el registro                     |
-| `product_id`     | Producto al que pertenece                        |
-| `brand_id`       | Marca; nulo si no tiene                          |
-| `brand_key`      | Clave de unicidad (`COALESCE` de `brand_id`)     |
-| `subcategory_id` | Subcategoría de clasificación                    |
-| `presentation`   | Presentación comercial (peso, volumen, formato)  |
+| Campo            | Descripción |
+|------------------|-------------|
+| `id`             | Identificador único (UUID) |
+| `user_id`        | Usuario que creó el registro |
+| `product_id`     | Producto al que pertenece |
+| `brand_id`       | Marca (obligatoria; `General` si no hay rostro) |
+| `subcategory_id` | Subcategoría de clasificación |
+| `unit_id`        | Unidad de medida del contenido |
+| `content_qty`    | Cantidad de contenido (50, 30, 1.5…) |
+| `packaging_id`   | Empaque (pomo, caja, bolsa…) |
+| `pack_qty`       | Cantidad de empaques / unidades en el pack (default 1) |
+| `presentation`   | Etiqueta legible de la presentación |
 | `price`          | Precio de venta en la unidad mínima de la moneda |
-| `created_at`     | Fecha de creación                                |
-| `updated_at`     | Fecha de la última modificación                  |
-| `status`         | `enabled` / `disabled` / `suspended`             |
+| `created_at`     | Fecha de creación |
+| `updated_at`     | Fecha de la última modificación |
+| `status`         | `enabled` / `disabled` / `suspended` |
 
 ### MySQL / MariaDB
 
@@ -811,20 +1231,24 @@ CREATE TABLE `items` (
   `id` CHAR(36) NOT NULL DEFAULT (UUID()),
   `user_id` CHAR(36) NOT NULL,
   `product_id` CHAR(36) NOT NULL,
-  `brand_id` CHAR(36) NULL,
-  `brand_key` CHAR(36)
-    GENERATED ALWAYS AS (COALESCE(`brand_id`, '00000000-0000-0000-0000-000000000000')) STORED,
+  `brand_id` CHAR(36) NOT NULL,
   `subcategory_id` CHAR(36) NOT NULL,
+  `unit_id` CHAR(36) NOT NULL,
+  `content_qty` DECIMAL(18,6) NOT NULL,
+  `packaging_id` CHAR(36) NOT NULL,
+  `pack_qty` INT NOT NULL DEFAULT 1,
   `presentation` VARCHAR(255) NOT NULL,
   `price` INT NOT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `status` VARCHAR(20) NOT NULL DEFAULT 'enabled',
   PRIMARY KEY (`id`),
-  UNIQUE (`product_id`, `brand_key`, `presentation`),
+  UNIQUE (`product_id`, `brand_id`, `unit_id`, `content_qty`, `packaging_id`, `pack_qty`),
   CONSTRAINT `items_status_check`
     CHECK (`status` IN ('enabled', 'disabled', 'suspended')),
   CONSTRAINT `items_price_check` CHECK (`price` >= 0),
+  CONSTRAINT `items_content_qty_check` CHECK (`content_qty` > 0),
+  CONSTRAINT `items_pack_qty_check` CHECK (`pack_qty` > 0),
   CONSTRAINT `fk_items_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_items_product`
@@ -832,7 +1256,11 @@ CREATE TABLE `items` (
   CONSTRAINT `fk_items_brand`
     FOREIGN KEY (`brand_id`) REFERENCES `brands`(`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_items_subcategory`
-    FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories`(`id`) ON DELETE RESTRICT
+    FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories`(`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_items_unit`
+    FOREIGN KEY (`unit_id`) REFERENCES `units`(`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_items_packaging`
+    FOREIGN KEY (`packaging_id`) REFERENCES `packagings`(`id`) ON DELETE RESTRICT
 );
 ```
 
@@ -843,18 +1271,20 @@ CREATE TABLE items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-  brand_id UUID REFERENCES brands(id) ON DELETE RESTRICT,
-  brand_key UUID GENERATED ALWAYS AS (
-    COALESCE(brand_id, '00000000-0000-0000-0000-000000000000'::uuid)
-  ) STORED,
+  brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE RESTRICT,
   subcategory_id UUID NOT NULL REFERENCES subcategories(id) ON DELETE RESTRICT,
+  unit_id UUID NOT NULL REFERENCES units(id) ON DELETE RESTRICT,
+  content_qty NUMERIC(18,6) NOT NULL CHECK (content_qty > 0),
+  packaging_id UUID NOT NULL REFERENCES packagings(id) ON DELETE RESTRICT,
+  pack_qty INTEGER NOT NULL DEFAULT 1 CHECK (pack_qty > 0),
   presentation VARCHAR(255) NOT NULL,
   price INTEGER NOT NULL CHECK (price >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'enabled'
     CHECK (status IN ('enabled', 'disabled', 'suspended')),
-  CONSTRAINT items_identity_unique UNIQUE (product_id, brand_key, presentation)
+  CONSTRAINT items_identity_unique
+    UNIQUE (product_id, brand_id, unit_id, content_qty, packaging_id, pack_qty)
 );
 
 CREATE TRIGGER items_set_updated_at
@@ -863,8 +1293,6 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 ```
 
 ### SQLite
-
-SQLite no ofrece columnas generadas de la misma forma en todas las versiones; `brand_key` se mantiene como columna normal y la aplicación (o un trigger `BEFORE INSERT/UPDATE`) debe fijarla a `COALESCE(brand_id, '00000000-0000-0000-0000-000000000000')`.
 
 ```sql
 CREATE TABLE items (
@@ -878,35 +1306,20 @@ CREATE TABLE items (
   ),
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-  brand_id TEXT REFERENCES brands(id) ON DELETE RESTRICT,
-  brand_key TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+  brand_id TEXT NOT NULL REFERENCES brands(id) ON DELETE RESTRICT,
   subcategory_id TEXT NOT NULL REFERENCES subcategories(id) ON DELETE RESTRICT,
+  unit_id TEXT NOT NULL REFERENCES units(id) ON DELETE RESTRICT,
+  content_qty REAL NOT NULL CHECK (content_qty > 0),
+  packaging_id TEXT NOT NULL REFERENCES packagings(id) ON DELETE RESTRICT,
+  pack_qty INTEGER NOT NULL DEFAULT 1 CHECK (pack_qty > 0),
   presentation TEXT NOT NULL,
   price INTEGER NOT NULL CHECK (price >= 0),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
   updated_at TEXT,
   status TEXT NOT NULL DEFAULT 'enabled'
     CHECK (status IN ('enabled', 'disabled', 'suspended')),
-  UNIQUE (product_id, brand_key, presentation)
+  UNIQUE (product_id, brand_id, unit_id, content_qty, packaging_id, pack_qty)
 );
-
-CREATE TRIGGER items_brand_key_insert
-AFTER INSERT ON items
-FOR EACH ROW
-BEGIN
-  UPDATE items
-  SET brand_key = COALESCE(NEW.brand_id, '00000000-0000-0000-0000-000000000000')
-  WHERE id = NEW.id;
-END;
-
-CREATE TRIGGER items_brand_key_update
-AFTER UPDATE OF brand_id ON items
-FOR EACH ROW
-BEGIN
-  UPDATE items
-  SET brand_key = COALESCE(NEW.brand_id, '00000000-0000-0000-0000-000000000000')
-  WHERE id = NEW.id;
-END;
 
 CREATE TRIGGER items_set_updated_at
 AFTER UPDATE ON items
@@ -926,13 +1339,21 @@ SELECT
   i.id,
   p.name AS product,
   b.name AS brand,
-  sc.name AS subcategory,
-  c.name AS category,
+  m.name AS manufacturer,
+  i.content_qty,
+  u.code AS unit,
+  pk.name AS packaging,
+  i.pack_qty,
   i.presentation,
-  i.price
+  i.price,
+  sc.name AS subcategory,
+  c.name AS category
 FROM items i
 JOIN products p ON p.id = i.product_id
-LEFT JOIN brands b ON b.id = i.brand_id
+JOIN brands b ON b.id = i.brand_id
+JOIN manufacturers m ON m.id = b.manufacturer_id
+JOIN units u ON u.id = i.unit_id
+JOIN packagings pk ON pk.id = i.packaging_id
 JOIN subcategories sc ON sc.id = i.subcategory_id
 JOIN categories c ON c.id = sc.category_id
 WHERE i.status = 'enabled'
@@ -1547,7 +1968,7 @@ SELECT
   END) AS total
 FROM items i
 JOIN products p ON p.id = i.product_id
-LEFT JOIN brands b ON b.id = i.brand_id
+JOIN brands b ON b.id = i.brand_id
 JOIN subcategories sc ON sc.id = i.subcategory_id
 JOIN categories c ON c.id = sc.category_id
 JOIN stock s ON s.item_id = i.id AND s.status = 'enabled'
@@ -1582,11 +2003,12 @@ ORDER BY s.created_at, s.id;
 ## Orden de migración sugerido
 
 1. `users` (<a href="#/users/objeto">Mantenedor de Usuarios</a>), `products`, `manufacturers`
-2. `brands`, `categories`, `subcategories`, `tags`
-3. `items`, `item_tags`
-4. `stores`, `suppliers` (<a href="#/suppliers/objeto">Mantenedor de Proveedores</a>), `customers` (<a href="#/customers/objeto">Mantenedor de Clientes</a>)
-5. `invoice_suppliers`, `invoice_customer`, `invoice_reference`
-6. `stock`
+2. `brands` (incl. marca `General` por fabricante), `categories` + subcategoría `General` por categoría, `subcategories` adicionales, `tags`
+3. `units` (precarga), `packagings`
+4. `items`, `item_tags`
+5. `stores`, `suppliers` (<a href="#/suppliers/objeto">Mantenedor de Proveedores</a>), `customers` (<a href="#/customers/objeto">Mantenedor de Clientes</a>)
+6. `invoice_suppliers`, `invoice_customer`, `invoice_reference`
+7. `stock`
 
 
 ## Mantenedores relacionados
