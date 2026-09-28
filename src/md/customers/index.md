@@ -25,7 +25,7 @@ Estas promesas no son un lujo técnico. Son la condición para que el negocio pu
 
 ## CONVENCIONES DEL MODELO
 
-Estas reglas aplican a todas las tablas de este documento y a los tres motores soportados: **MySQL/MariaDB**, **PostgreSQL** y **SQLite**. Son las mismas convenciones de los mantenedores de <a href="#/items/objeto">Artículos</a> y <a href="#/users/objeto">Usuarios</a>.
+Estas reglas aplican a todas las tablas de este documento y a los tres motores soportados: **MariaDB**, **PostgreSQL** y **SQLite**. Son las mismas convenciones de los mantenedores de <a href="#/items/objeto">Artículos</a> y <a href="#/users/objeto">Usuarios</a>.
 
 ### Identificadores
 
@@ -33,11 +33,11 @@ Todas las claves primarias y foráneas usan **UUID** en formato canónico minús
 
 | Motor | Tipo | Default |
 |-------|------|---------|
-| MySQL 8.0.13+ / MariaDB 10.7+ | `CHAR(36)` | `(UUID())` |
+| MariaDB 10.7+ | `CHAR(36)` | `(UUID())` |
 | PostgreSQL 13+ | `UUID` | `gen_random_uuid()` |
 | SQLite | `TEXT` | expresión UUID v4 (ver abajo) |
 
-Si el motor MySQL/MariaDB es anterior a esas versiones, el UUID se genera en la aplicación.
+Si el motor MariaDB es anterior a esas versiones, el UUID se genera en la aplicación.
 
 **Expresión UUID v4 para SQLite:**
 
@@ -72,7 +72,7 @@ PRAGMA foreign_keys = ON;
 
 | Motor | `created_at` | `updated_at` |
 |-------|--------------|--------------|
-| MySQL/MariaDB | `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` | `TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP` |
+| MariaDB | `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` | `TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP` |
 | PostgreSQL | `TIMESTAMPTZ NOT NULL DEFAULT now()` | trigger `set_updated_at()` |
 | SQLite | `TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))` | trigger por tabla |
 
@@ -101,7 +101,7 @@ Las coordenadas se almacenan en **WGS84**:
 | `latitude` | −90 a 90 | Latitud decimal |
 | `longitude` | −180 a 180 | Longitud decimal |
 
-Tipos portables: `DECIMAL(9,6)` / `DECIMAL(10,6)` en MySQL y PostgreSQL; `REAL` en SQLite con `CHECK` de rango. Un local o dirección de entrega **habilitado para despacho** debe tener ambas coordenadas. El motor de rutas (secuencia de paradas, ventanas horarias, flota) es una **decisión diferida**: este mantenedor solo garantiza el padrón georreferenciado que ese motor consumirá.
+Tipos portables: `DECIMAL(9,6)` / `DECIMAL(10,6)` en MariaDB y PostgreSQL; `REAL` en SQLite con `CHECK` de rango. Un local o dirección de entrega **habilitado para despacho** debe tener ambas coordenadas. El motor de rutas (secuencia de paradas, ventanas horarias, flota) es una **decisión diferida**: este mantenedor solo garantiza el padrón georreferenciado que ese motor consumirá.
 
 ### Contactos: alcance cliente vs local
 
@@ -164,7 +164,7 @@ Los clientes no se eliminan: `status` pasa a `disabled` o `suspended`, conservan
 | `updated_at`  | Fecha de la última modificación |
 | `status`      | `enabled` / `disabled` / `suspended` |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `customers` (
@@ -272,7 +272,7 @@ BEGIN
 END;
 ```
 
-### Drizzle ORM (MySQL)
+### Drizzle ORM (MariaDB)
 
 ```ts
 import { mysqlTable, char, varchar, text, timestamp } from 'drizzle-orm/mysql-core';
@@ -337,7 +337,7 @@ Las ubicaciones no se eliminan. Si el cliente cierra una sucursal, `status` camb
 
 Unicidad práctica: el mismo cliente no debería repetir la misma etiqueta `name` activa. El contrato impone `UNIQUE (customer_id, name)`.
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `customer_locations` (
@@ -502,7 +502,7 @@ Los contactos no se eliminan: cambian de `status`. Si la persona cambia de cargo
 | `updated_at`   | Fecha de la última modificación |
 | `status`       | Ciclo de vida del contacto |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `customer_contacts` (

@@ -23,6 +23,11 @@ import { Link } from "panda-ui-mithril/link"
 import { Button } from "panda-ui-mithril/button"
 import { ThemeController } from "panda-ui-mithril/theme-controller"
 import { Tabs, Tab, TabContent } from "panda-ui-mithril/tabs"
+import {
+  DevMariadbOriginal,
+  DevPostgresqlOriginal,
+  DevSqliteOriginal,
+} from "devicon-mithril"
 
 m.route.prefix = "#"
 
@@ -245,6 +250,50 @@ function scrollToTop() {
   window.scrollTo(0, 0)
 }
 
+const DIALECT_HEADINGS = {
+  mariadb: { label: "MariaDB", Icon: DevMariadbOriginal },
+  postgresql: { label: "PostgreSQL", Icon: DevPostgresqlOriginal },
+  sqlite: { label: "SQLite", Icon: DevSqliteOriginal },
+}
+
+const dialectHeadingClass = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  scrollMarginTop: "4.5rem",
+})
+
+/** Parte HTML y reemplaza h3 de dialecto por vnode con icono Devicon. */
+function renderHtmlWithDialectIcons(html) {
+  if (!html) return []
+  const re = /<h3\b([^>]*)>([\s\S]*?)<\/h3>/gi
+  const out = []
+  let last = 0
+  let match
+  while ((match = re.exec(html)) !== null) {
+    const attrs = match[1] || ""
+    const idMatch = attrs.match(/\bid\s*=\s*["']([^"']+)["']/i)
+    const id = idMatch?.[1] || ""
+    const dialect = DIALECT_HEADINGS[id]
+    if (match.index > last) {
+      out.push(m.trust(html.slice(last, match.index)))
+    }
+    if (dialect) {
+      out.push(
+        m("h3", { id, className: dialectHeadingClass }, [
+          m(dialect.Icon, { size: 28, "aria-hidden": "true" }),
+          dialect.label,
+        ])
+      )
+    } else {
+      out.push(m.trust(match[0]))
+    }
+    last = match.index + match[0].length
+  }
+  if (last < html.length) out.push(m.trust(html.slice(last)))
+  return out.length ? out : [m.trust(html)]
+}
+
 function slugify(text) {
   return String(text || "")
     .normalize("NFD")
@@ -331,14 +380,18 @@ function scrollToTocId(id, behavior = "smooth") {
   return true
 }
 
-function tocItemLink(item, mntId, sectionLink, activeId, child = false) {
+function tocItemLink(item, mntId, sectionLink, activeId, child = false, onSelect = null) {
+  const isActive = item.id === activeId
   return m("a", {
     href: `#/${mntId}/${sectionLink}?toc=${encodeURIComponent(item.id)}`,
     className: child
-      ? (item.id === activeId ? tocChildLinkActiveClass : tocChildLinkClass)
-      : (item.id === activeId ? tocLinkActiveClass : tocLinkClass),
+      ? (isActive ? tocChildLinkActiveClass : tocChildLinkClass)
+      : (isActive ? tocLinkActiveClass : tocLinkClass),
+    "data-toc-id": item.id,
+    "aria-current": isActive ? "true" : undefined,
     onclick: (e) => {
       e.preventDefault()
+      if (onSelect) onSelect(item.id)
       scrollToTocId(item.id, "smooth")
       m.route.set(`/${mntId}/${sectionLink}`, { toc: item.id }, { replace: true })
     },
@@ -356,14 +409,27 @@ function flattenTocIds(toc) {
   return ids
 }
 
-function tocRail(toc, mntId, sectionLink, activeId) {
+/** Último heading/bloque cuya parte superior ya pasó la línea de lectura. */
+function resolveActiveTocId(toc, offsetPx = 96) {
+  const flat = flattenTocIds(toc)
+  if (!flat.length) return ""
+  let current = flat[0].id
+  for (const item of flat) {
+    const el = document.getElementById(item.id)
+    if (!el) continue
+    if (el.getBoundingClientRect().top <= offsetPx) current = item.id
+  }
+  return current
+}
+
+function tocRail(toc, mntId, sectionLink, activeId, onSelect = null) {
   if (!toc.length) return null
   const links = []
   for (const item of toc) {
-    links.push(tocItemLink(item, mntId, sectionLink, activeId, false))
+    links.push(tocItemLink(item, mntId, sectionLink, activeId, false, onSelect))
     if (item.children?.length) {
       for (const child of item.children) {
-        links.push(tocItemLink(child, mntId, sectionLink, activeId, true))
+        links.push(tocItemLink(child, mntId, sectionLink, activeId, true, onSelect))
       }
     }
   }
@@ -559,41 +625,114 @@ function SectionView() {
   let lastTocParam = ""
   let activeId = ""
   let latestToc = []
-  let observer = null
+  let ticking = false
+  let spyBound = false
+  let lastRailScrollId = ""
+  // Durante scroll programático (clic TOC) no pintar intermedios.
+  let spyLocked = false
+  let pendingTocId = ""
+  let paintTimer = null
 
   const runMermaid = () => {
     mermaid.run({ querySelector: "#main-content .language-mermaid" })
   }
 
-  const teardownObserver = () => {
-    if (observer) {
-      observer.disconnect()
-      observer = null
+  const clearPaintTimer = () => {
+    if (paintTimer != null) {
+      clearTimeout(paintTimer)
+      paintTimer = null
     }
   }
 
-  const setupObserver = () => {
-    teardownObserver()
-    const flat = flattenTocIds(latestToc)
-    if (!flat.length || typeof IntersectionObserver === "undefined") return
-    observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-        if (!visible.length) return
-        const next = visible[0].target.id
-        if (next && next !== activeId) {
-          activeId = next
-          m.redraw()
-        }
-      },
-      { rootMargin: "-15% 0px -70% 0px", threshold: [0, 1] }
-    )
-    for (const item of flat) {
-      const el = document.getElementById(item.id)
-      if (el) observer.observe(el)
+  const syncRailActiveLink = (id) => {
+    if (!id || id === lastRailScrollId) return
+    lastRailScrollId = id
+    const link = document.querySelector(`aside[aria-label="En esta página"] a[data-toc-id="${CSS.escape(id)}"]`)
+    if (link) link.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  }
+
+  const paintActiveId = (next) => {
+    if (!next || next === activeId) return
+    activeId = next
+    m.redraw()
+    requestAnimationFrame(() => syncRailActiveLink(next))
+  }
+
+  /** Tras la animación de scroll, espera 300ms y recién entonces pinta. */
+  const schedulePaintFromScroll = () => {
+    clearPaintTimer()
+    paintTimer = setTimeout(() => {
+      paintTimer = null
+      spyLocked = false
+      pendingTocId = ""
+      if (!latestToc.length) return
+      paintActiveId(resolveActiveTocId(latestToc, 96))
+    }, 300)
+  }
+
+  const unlockSpyIfArrived = () => {
+    if (!spyLocked || !pendingTocId) return false
+    const el = document.getElementById(pendingTocId)
+    if (!el) {
+      schedulePaintFromScroll()
+      return false
     }
+    const top = el.getBoundingClientRect().top
+    // Llegó a la línea de lectura (o ya pasó un poco).
+    if (top <= 120 && top >= -20) {
+      schedulePaintFromScroll()
+      return false
+    }
+    return false
+  }
+
+  const updateActiveFromScroll = () => {
+    if (!latestToc.length) return
+    if (spyLocked) {
+      unlockSpyIfArrived()
+      return
+    }
+    const next = resolveActiveTocId(latestToc, 96)
+    paintActiveId(next)
+  }
+
+  const onScroll = () => {
+    if (ticking) return
+    ticking = true
+    requestAnimationFrame(() => {
+      ticking = false
+      updateActiveFromScroll()
+    })
+  }
+
+  const onScrollEnd = () => {
+    if (!spyLocked) return
+    schedulePaintFromScroll()
+  }
+
+  const bindSpy = () => {
+    if (spyBound) return
+    window.addEventListener("scroll", onScroll, { passive: true })
+    window.addEventListener("resize", onScroll, { passive: true })
+    window.addEventListener("scrollend", onScrollEnd, { passive: true })
+    spyBound = true
+  }
+
+  const unbindSpy = () => {
+    if (!spyBound) return
+    clearPaintTimer()
+    window.removeEventListener("scroll", onScroll)
+    window.removeEventListener("resize", onScroll)
+    window.removeEventListener("scrollend", onScrollEnd)
+    spyBound = false
+  }
+
+  /** Clic TOC: no pinta aquí; solo bloquea el spy hasta llegar. */
+  const selectToc = (id) => {
+    clearPaintTimer()
+    spyLocked = true
+    pendingTocId = id
+    lastRailScrollId = ""
   }
 
   const syncRoute = () => {
@@ -605,35 +744,46 @@ function SectionView() {
     if (pageChanged) {
       lastKey = key
       lastTocParam = tocParam
-      activeId = tocParam
-      teardownObserver()
+      spyLocked = false
+      pendingTocId = ""
       if (tocParam) {
+        // Salto instantáneo al cargar: pintar al llegar.
+        spyLocked = true
+        pendingTocId = tocParam
         requestAnimationFrame(() => {
-          if (!scrollToTocId(tocParam, "auto")) scrollToTop()
-          setupObserver()
+          if (!scrollToTocId(tocParam, "auto")) {
+            spyLocked = false
+            pendingTocId = ""
+            scrollToTop()
+          }
+          updateActiveFromScroll()
         })
       } else {
+        activeId = ""
         scrollToTop()
-        requestAnimationFrame(() => setupObserver())
+        requestAnimationFrame(() => {
+          updateActiveFromScroll()
+        })
       }
     } else if (tocChanged) {
       lastTocParam = tocParam
-      activeId = tocParam
-      if (tocParam) scrollToTocId(tocParam, "smooth")
-    } else {
-      // Re-bind observer after redraws that replace trusted HTML.
-      requestAnimationFrame(() => {
-        if (!observer) setupObserver()
-      })
+      if (tocParam) {
+        spyLocked = true
+        pendingTocId = tocParam
+        scrollToTocId(tocParam, "smooth")
+      }
+    } else if (!spyLocked) {
+      requestAnimationFrame(() => updateActiveFromScroll())
     }
 
+    bindSpy()
     runMermaid()
   }
 
   return {
     oncreate: syncRoute,
     onupdate: syncRoute,
-    onremove: teardownObserver,
+    onremove: unbindSpy,
     view: ({ attrs }) => {
       const mnt = mantenedores.find((m) => m.id === attrs.mantenedor)
       if (!mnt) return m("main", { className: mainClass }, [
@@ -649,16 +799,20 @@ function SectionView() {
 
       const segments = parseTabGroups(prepared.html)
       const children = segments.map((seg, i) => {
-        if (seg.type === "html") return m.trust(seg.content)
+        if (seg.type === "html") return renderHtmlWithDialectIcons(seg.content)
         if (seg.type === "tabs") {
           return m(Tabs, { key: i, boxed: true, defaultActive: seg.tabs[0].label }, [
             seg.tabs.map((t) => m(Tab, { key: t.label, ref: t.label }, t.label)),
-            seg.tabs.map((t) => m(TabContent, { key: "tc-" + t.label, ref: t.label }, m.trust(t.content))),
+            seg.tabs.map((t) =>
+              m(TabContent, { key: "tc-" + t.label, ref: t.label },
+                renderHtmlWithDialectIcons(t.content))
+            ),
           ])
         }
       })
 
-      const currentToc = m.route.param("toc") || activeId
+      // Si aún no hay activo (carga), derivarlo del DOM.
+      const highlightId = activeId || (flattenTocIds(prepared.toc)[0]?.id ?? "")
       const hasToc = prepared.toc.length > 0
 
       return [
@@ -667,7 +821,7 @@ function SectionView() {
           children,
           sectionPager(mnt, section),
         ]),
-        tocRail(prepared.toc, mnt.id, section.link, currentToc),
+        tocRail(prepared.toc, mnt.id, section.link, highlightId, selectToc),
       ]
     },
   }

@@ -33,7 +33,7 @@ Todas las claves primarias y foráneas usan **UUID** canónico minúsculas.
 
 | Motor | Tipo | Default |
 |-------|------|---------|
-| MySQL 8.0.13+ / MariaDB 10.7+ | `CHAR(36)` | `(UUID())` |
+| MariaDB 10.7+ | `CHAR(36)` | `(UUID())` |
 | PostgreSQL 13+ | `UUID` | `gen_random_uuid()` |
 | SQLite | `TEXT` | expresión UUID v4 |
 
@@ -63,7 +63,7 @@ lower(hex(randomblob(6)))
 
 | Motor | `created_at` | `updated_at` (cuando exista) |
 |-------|--------------|------------------------------|
-| MySQL/MariaDB | `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` | `TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP` |
+| MariaDB | `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` | `TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP` |
 | PostgreSQL | `TIMESTAMPTZ NOT NULL DEFAULT now()` | trigger `set_updated_at()` si la tabla tiene `updated_at` |
 | SQLite | `TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))` | trigger por tabla si aplica |
 
@@ -131,7 +131,7 @@ Almacenamiento de los usuarios del sistema.
 | `updated_at`     | Fecha de la última modificación |
 | `active`         | Estado: `enabled` / `disabled` / `suspended` |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `users` (
@@ -220,7 +220,7 @@ Listado de sistemas operativos que contiene Device Detector. `os_dd` = *Operativ
 | `id`  | Identificador único (UUID) |
 | `os`  | Nombre del sistema operativo (único) |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `os_dd` (
@@ -274,7 +274,7 @@ Listado de navegadores web que contiene Device Detector.
 | `id`      | Identificador único (UUID) |
 | `browser` | Nombre del navegador (único) |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `browsers_dd` (
@@ -328,7 +328,7 @@ Listado de motores de renderizado que contiene Device Detector.
 | `id`     | Identificador único (UUID) |
 | `engine` | Nombre del motor (único) |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `engines_dd` (
@@ -402,7 +402,7 @@ Individualiza el dispositivo desde el cual el usuario está realizando la conexi
 | `created_at` | Tiempo de creación del dispositivo |
 | `active`     | `0` = inválido / no confiable (default); `1` = válido / confiable |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `device_dd` (
@@ -490,7 +490,7 @@ Registra el inicio de sesión del usuario, proveyendo un token de seguridad de l
 | `device`     | Id del dispositivo conectado (`device_dd.id`) |
 | `created_at` | Tiempo de creación de la sesión |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `UsersSession` (

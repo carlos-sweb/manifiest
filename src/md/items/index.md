@@ -25,7 +25,7 @@ Estas promesas no son un lujo técnico. Son la condición para que el negocio pu
 
 ## CONVENCIONES DEL MODELO
 
-Estas reglas aplican a todas las tablas de este documento y a los tres motores soportados: **MySQL/MariaDB**, **PostgreSQL** y **SQLite**.
+Estas reglas aplican a todas las tablas de este documento y a los tres motores soportados: **MariaDB**, **PostgreSQL** y **SQLite**.
 
 ### Identificadores
 
@@ -33,11 +33,11 @@ Todas las claves primarias y foráneas usan **UUID** en formato canónico minús
 
 | Motor | Tipo | Default |
 |-------|------|---------|
-| MySQL 8.0.13+ / MariaDB 10.7+ | `CHAR(36)` | `(UUID())` |
+| MariaDB 10.7+ | `CHAR(36)` | `(UUID())` |
 | PostgreSQL 13+ | `UUID` | `gen_random_uuid()` |
 | SQLite | `TEXT` | expresión UUID v4 (ver abajo) |
 
-Si el motor MySQL/MariaDB es anterior a esas versiones, el UUID se genera en la aplicación.
+Si el motor MariaDB es anterior a esas versiones, el UUID se genera en la aplicación.
 
 **Expresión UUID v4 para SQLite** (reutilizada en todos los `CREATE`):
 
@@ -62,7 +62,7 @@ Un solo vocabulario en todo el catálogo y en los hechos:
 
 El campo se llama siempre `status` (nunca `active`). La baja es un cambio de estado; la reactivación reutiliza el registro existente.
 
-En los tres motores el dominio se expresa con `CHECK` (portable). MySQL/MariaDB puede usar `ENUM` como alternativa nativa; este documento prioriza `VARCHAR`/`TEXT` + `CHECK` para un contrato mental único.
+En los tres motores el dominio se expresa con `CHECK` (portable). MariaDB puede usar `ENUM` como alternativa nativa; este documento prioriza `VARCHAR`/`TEXT` + `CHECK` para un contrato mental único.
 
 ### Integridad referencial
 
@@ -78,7 +78,7 @@ PRAGMA foreign_keys = ON;
 
 | Motor | `created_at` | `updated_at` |
 |-------|--------------|--------------|
-| MySQL/MariaDB | `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` | `TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP` |
+| MariaDB | `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` | `TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP` |
 | PostgreSQL | `TIMESTAMPTZ NOT NULL DEFAULT now()` | trigger `set_updated_at()` |
 | SQLite | `TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now'))` | trigger por tabla |
 
@@ -191,7 +191,7 @@ Los productos no se eliminan. Cuando dejan de utilizarse, `status` pasa a `disab
 | `updated_at`  | Fecha de la última modificación     |
 | `status`      | `enabled` / `disabled` / `suspended`|
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `products` (
@@ -264,7 +264,7 @@ BEGIN
 END;
 ```
 
-### Drizzle ORM (MySQL)
+### Drizzle ORM (MariaDB)
 
 ```ts
 import { mysqlTable, char, varchar, timestamp, text, unique } from 'drizzle-orm/mysql-core';
@@ -303,7 +303,7 @@ La marca es el rostro que ve el cliente (Marco Polo, Truper, Merck). El fabrican
 | `updated_at` | Fecha de la última modificación      |
 | `status`     | `enabled` / `disabled` / `suspended` |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `manufacturers` (
@@ -392,7 +392,7 @@ Cuando el artículo no tiene rostro comercial (genérico Cenabast, limón de un 
 | `updated_at`      | Fecha de la última modificación                  |
 | `status`          | `enabled` / `disabled` / `suspended`             |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `brands` (
@@ -498,7 +498,7 @@ La categoría clasifica por esencia, no por accidente. Atributos transversales c
 | `updated_at` | Fecha de la última modificación      |
 | `status`     | `enabled` / `disabled` / `suspended` |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `categories` (
@@ -597,7 +597,7 @@ El árbol no se bifurca: una subcategoría tiene un solo padre y un artículo pe
 | `updated_at`  | Fecha de la última modificación                  |
 | `status`      | `enabled` / `disabled` / `suspended`             |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `subcategories` (
@@ -705,7 +705,7 @@ Un tag es un accidente, no una esencia. "Enlatado" puede aplicar a un pescado, u
 | `item_id` | Artículo etiquetado |
 | `tag_id`  | Tag asignado        |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `tags` (
@@ -914,11 +914,11 @@ Sin unidad no hay forma estable de comparar ni de stockear: “50” solo no sig
 | `created_at` | Fecha de carga o alta en el catálogo precargado. |
 | `status`     | Ciclo de vida: `enabled` / `disabled` / `suspended`. Una unidad en desuso no se borra. |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `units` (
-  `id` CHAR(36) NOT NULL DEFAULT (UUID()),
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `code` VARCHAR(16) NOT NULL,
   `name` VARCHAR(64) NOT NULL,
   `dimension` VARCHAR(16) NOT NULL,
@@ -1044,7 +1044,7 @@ Sirve a cualquier rubro: farmacia (pomo, blíster), almacén (bolsa), verdulerí
 | `updated_at` | Fecha de la última modificación |
 | `status`     | `enabled` / `disabled` / `suspended` |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `packagings` (
@@ -1224,7 +1224,7 @@ Lectura:
 | `updated_at`     | Fecha de la última modificación |
 | `status`         | `enabled` / `disabled` / `suspended` |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `items` (
@@ -1382,7 +1382,7 @@ Cada movimiento de stock pertenece a una bodega concreta. Una tienda puede tener
 | `updated_at` | Fecha de la última modificación      |
 | `status`     | Estado de la bodega o local          |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `stores` (
@@ -1483,7 +1483,7 @@ Sin documento no hay movimiento. La compra es un hecho auditable (usuario, fecha
 | `updated_at`  | Fecha de la última modificación|
 | `status`      | Estado del documento           |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `invoice_suppliers` (
@@ -1579,7 +1579,7 @@ Simétrica a la compra. La venta es un hecho: no se reescribe la historia cambia
 | `updated_at`  | Fecha de la última modificación|
 | `status`      | Estado del documento          |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `invoice_customer` (
@@ -1676,7 +1676,7 @@ El stock no inventa su propio sentido: lo hereda del documento. Esta tabla es el
 | `updated_at`          | Fecha de la última modificación      |
 | `status`              | Estado de la referencia              |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `invoice_reference` (
@@ -1792,7 +1792,7 @@ El stock no es un contador editable. Es la suma de movimientos documentados. Est
 | `updated_at` | Fecha de la última modificación      |
 | `status`     | Estado del movimiento                |
 
-### MySQL / MariaDB
+### MariaDB
 
 ```sql
 CREATE TABLE `stock` (
@@ -1888,7 +1888,7 @@ END;
 
 ### Compra (entrada de existencias)
 
-Pseudocódigo portable (en MySQL usar variables / UUIDs generados; en SQLite `last_insert_rowid` no aplica a UUID — preferir UUID desde la aplicación):
+Pseudocódigo portable (en MariaDB usar variables / UUIDs generados; en SQLite `last_insert_rowid` no aplica a UUID — preferir UUID desde la aplicación):
 
 ```text
 BEGIN
@@ -1898,7 +1898,7 @@ BEGIN
 COMMIT
 ```
 
-Ejemplo MySQL con UUID explícitos:
+Ejemplo MariaDB con UUID explícitos:
 
 ```sql
 BEGIN;
