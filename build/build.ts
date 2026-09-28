@@ -62,6 +62,7 @@ for (const entry of entries) {
   const sections: Section[] = [];
   let current: Section | null = null;
 
+
   $('body').children().each((_, el) => {
     if (el.tagName === 'h2') {
       if (current) sections.push(current);
